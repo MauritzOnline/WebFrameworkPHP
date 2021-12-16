@@ -265,7 +265,7 @@ $this->post("/:hello/:abc", function() {
 
 ## HTML rendering
 
-> HTML can also be rendered at specified routes using the `get()` method.
+> HTML can also be rendered at specified routes using the `get()` method. Running `end_html()` at the end is recommended and it allows you to choose a status code.
 
 ### Examples
 
@@ -287,7 +287,7 @@ $this->post("/:hello/:abc", function() {
     <p>Hello world! <?php echo $this->request->uri; ?></p>
   </body>
 </html>
-<?php }); ?>
+<?php $this->end_html(); }); ?>
 ```
 
 **/routes/document.php**
@@ -313,5 +313,5 @@ $this->get("/document/:id", function() {
     <main><?php echo $document->contents; ?></main>
   </body>
 </html>
-<?php }); ?>
+<?php $this->end_html(200); }); ?>
 ```

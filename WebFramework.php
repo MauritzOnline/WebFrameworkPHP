@@ -105,6 +105,33 @@ class WebFramework {
     $this->send(json_encode($final_data), $final_data->status, "application/json");
   }
 
+  /* Activates the following HelmetJS defaults [must be called before start()]:
+      - contentSecurityPolicy
+      - dnsPrefetchControl
+      - expectCt
+      - frameguard
+      - hidePoweredBy
+      - hsts
+      - ieNoOpen
+      - noSniff
+      - permittedCrossDomainPolicies
+      - referrerPolicy
+      - xssFilter
+  */
+  public function helmet() {
+    header("Content-Security-Policy: default-src 'self'; base-uri 'self'; block-all-mixed-content; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests");
+    header("X-DNS-Prefetch-Control: off");
+    header("Expect-CT: max-age=0");
+    header("X-Frame-Options: SAMEORIGIN");
+    header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
+    header("X-Download-Options: noopen");
+    header("X-Content-Type-Options: nosniff");
+    header("X-Permitted-Cross-Domain-Policies: none");
+    header("Referrer-Policy: no-referrer");
+    header("X-XSS-Protection: 0");
+    header_remove("X-Powered-By");
+  }
+
   // Start the web framework (matching route, parsing data, etc...)
   public function start() {
     if(!empty($this->_routes_folder)) $this->_load_routes();

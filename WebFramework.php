@@ -194,9 +194,10 @@ class WebFramework {
 
   // Adds route (should not be used directly, use get(), post(), etc...)
   private function _add_route(string $method, string $route_str, callable $route_callback) {
+    $clean_route_str = trim(explode("?", $route_str)[0]);
     array_push($this->_routes, (object) [
       "method" => $method,
-      "uri" => explode("?", $route_str)[0],
+      "uri" => $clean_route_str === "/" ? $clean_route_str : rtrim($clean_route_str, "/"),
       "callback" => $route_callback
     ]);
   }

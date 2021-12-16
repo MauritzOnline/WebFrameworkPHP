@@ -24,7 +24,7 @@ $webFramework->start(); // runs last (after all routes have been loaded)
 ?>
 ```
 
-**Options 1: `.htaccess` at domain root _[`https://example.com/`]_**
+**Options 1: `.htaccess` when running framework at domain root _[`https://example.com/`]_**
 
 ```apacheconf
 RewriteEngine On
@@ -39,7 +39,7 @@ RewriteCond %{HTTPS} !=on
 RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
 ```
 
-**Options 2: `.htaccess` inside a folder _[`https://example.com/my_api/`]_**
+**Options 2: `.htaccess` when running framework inside a folder _[`https://example.com/my_api/`]_**
 
 ```apacheconf
 RewriteEngine On

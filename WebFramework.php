@@ -1,4 +1,11 @@
 <?php
+/**
+ * WebFrameworkPHP: A small and simple web framework built using PHP.
+ *
+ * @copyright   Copyright (c) 2021, Mauritz Nilsson <mail@mauritzonline.com>
+ * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/main/LICENSE
+ * @version     0.0.1
+ */
 
 class WebFramework {
   private string $_routes_folder;

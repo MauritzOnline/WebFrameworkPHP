@@ -58,7 +58,7 @@ RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
 
 ## Route loading
 
-> All routing is done by placing PHP files in to either the default `routes` folder, or by choosing your own folder in the constructor. Auto loading of routes can be disabled by passing an empty string to the constructor _(e.g. `""`)_. Auto loading can used together with manual loading of additional routes.
+> All routing is done by placing PHP files inside either the default `routes` folder, or by choosing your own folder in the constructor. Auto loading of routes can be disabled by passing an empty string to the constructor _(e.g. `""`)_. Auto loading can used together with manual loading of additional routes.
 
 ### Auto loading
 
@@ -101,7 +101,7 @@ $this->get("/demo", function() {
 
 require_once("./classes/WebFramework.php");
 
-$webFramework = new WebFramework("");
+$webFramework = new WebFramework(""); // "" => disables auto loading
 require_once("./manual_route.php");
 $webFramework->start();
 
@@ -185,7 +185,7 @@ $this->post("/document", function() {
 
 ### send()
 
-> You are free to choose Content-Type yourself and status code.
+> Base response function, allows you to send any data you want with any Content-Type and status code.
 
 ```php
 public function send(string $data, int $status_code = 200, string $content_type = "text/plain") { ... }
@@ -202,7 +202,7 @@ $this->send(json_encode(array(...)), 200, "application/json"); // 200 OK
 
 ### send_json()
 
-> Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`.
+> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`.
 
 ```php
 public function send_json(object|array $data) { ... }
@@ -235,13 +235,15 @@ $this->send_json(array(
 
 ## Request data
 
+> `request->uri` will always exclude the current directory, if you are running the framework from the domain root then this will not affect you. However if you are running from inside a folder, the URI will never include the folder, e.g. `/my_api/hello` becomes `/hello`.
+
 **Structure of request data:**
 
 ```php
 $this->request = (object) array(
   "method" => $_SERVER["REQUEST_METHOD"],
   "content_type" => $_SERVER["CONTENT_TYPE"],
-  "uri" => "/", // the current URI
+  "uri" => "...", // the current URI
   "query" => array(...), // parsed URI queries (?hello=world&abc=123)
   "params" => array(...), // parsed URI params (/:hello/:abc)
   "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
@@ -253,8 +255,8 @@ $this->request = (object) array(
 ```php
 $this->post("/:hello/:abc", function() {
   $this->request->query["hello"]; // world (required)
-  $this->request->params["hello"]; // world (can be missing, as such using isset before accessing is recommended)
-  $this->request->body["hello"]; // world (can be missing, as such using isset before accessing is recommended)
+  $this->request->params["hello"]; // world (can be missing, using isset before accessing is recommended)
+  $this->request->body["hello"]; // world (can be missing, using isset before accessing is recommended)
   $this->send("");
 }
 ```

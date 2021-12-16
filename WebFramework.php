@@ -8,14 +8,7 @@ class WebFramework {
   private $_routes = array();
 
   protected string $root_uri;
-  protected string $request_method;
-  protected string $request_content_type;
-  protected string $request_uri;
   protected string $found_route_uri;
-
-  protected $request_query = array();
-  protected $request_params = array();
-  protected $request_body = array();
 
   protected $request;
 

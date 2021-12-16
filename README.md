@@ -317,3 +317,23 @@ $this->render_html("/document/:id", function() {
 </html>
 <?php }, 200); ?>
 ```
+
+---
+
+## Helmet
+
+> This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->helmet();
+$webFramework->start();
+
+?>
+```

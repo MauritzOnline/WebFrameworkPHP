@@ -83,7 +83,7 @@ class WebFramework {
   }
 
   // Sends proper end for HTML rendering
-  public function end_html(int $status_code = 200) {
+  public function end_html_render(int $status_code = 200) {
     http_response_code($status_code);
     header("Content-Type: text/html");
     exit();

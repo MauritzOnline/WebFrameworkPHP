@@ -53,6 +53,11 @@ class WebFramework {
     ];
   }
 
+  // Adds a GET method route to be loaded, with tagging that HTML will be rendered
+  public function render_html(string $route_str, callable $route_callback, $status_code = 200) {
+    $this->_add_route("GET", $route_str, $route_callback, true, $status_code);
+  }
+
   // Adds a GET method route to be loaded
   public function get(string $route_str, callable $route_callback) {
     $this->_add_route("GET", $route_str, $route_callback);
@@ -79,13 +84,6 @@ class WebFramework {
     http_response_code($status_code);
     header("Content-Type: " . trim($content_type));
     echo $data;
-    exit();
-  }
-
-  // Sends proper end for HTML rendering
-  public function end_html_render(int $status_code = 200) {
-    http_response_code($status_code);
-    header("Content-Type: text/html");
     exit();
   }
 
@@ -185,8 +183,17 @@ class WebFramework {
 
       // Run found route's callback
       if(is_callable($matching_routes[$arr_key]->callback)) {
+        if($matching_routes[$arr_key]->is_html) {
+          http_response_code($matching_routes[$arr_key]->html_status_code);
+          header("Content-Type: text/html");
+        }
+
         $this->found_route_uri = $matching_routes[$arr_key]->uri;
         call_user_func($matching_routes[$arr_key]->callback);
+
+        if($matching_routes[$arr_key]->is_html) {
+          exit();
+        }
       }
     } else {
       // No matching route could be found, send default 404
@@ -200,12 +207,14 @@ class WebFramework {
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)
-  private function _add_route(string $method, string $route_str, callable $route_callback) {
+  private function _add_route(string $method, string $route_str, callable $route_callback, bool $route_is_html = false, int $html_status_code = 200) {
     $clean_route_str = trim(explode("?", $route_str)[0]);
     array_push($this->_routes, (object) [
       "method" => $method,
       "uri" => $clean_route_str === "/" ? $clean_route_str : rtrim($clean_route_str, "/"),
-      "callback" => $route_callback
+      "callback" => $route_callback,
+      "is_html" => $route_is_html,
+      "html_status_code" => $html_status_code,
     ]);
   }
 

@@ -82,6 +82,13 @@ class WebFramework {
     exit();
   }
 
+  // Sends proper end for HTML rendering
+  public function end_html(int $status_code = 200) {
+    http_response_code($status_code);
+    header("Content-Type: text/html");
+    exit();
+  }
+
   // Sends a JSON response to the client (with Content-Type: application/json)
   public function send_json(object|array $data) {
     $data = (object) $data;

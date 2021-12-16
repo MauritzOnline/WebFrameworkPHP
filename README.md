@@ -260,3 +260,58 @@ $this->post("/:hello/:abc", function() {
   $this->send("");
 }
 ```
+
+---
+
+## HTML rendering
+
+> HTML can also be rendered at specified routes using the `get()` method.
+
+### Examples
+
+**/routes/root.php**
+
+```php
+<?php $this->get("/", function() { ?>
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hello world!</title>
+  </head>
+
+  <body>
+    <p>Hello world! <?php echo $this->request->uri; ?></p>
+  </body>
+</html>
+<?php }); ?>
+```
+
+**/routes/document.php**
+
+```php
+<?php
+
+$this->get("/document/:id", function() {
+  // ... logic to fetch document ...
+?>
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document viewer</title>
+  </head>
+
+  <body>
+    <h1><?php echo $document->title; ?></h1>
+    <main><?php echo $document->contents; ?></main>
+  </body>
+</html>
+<?php }); ?>
+```

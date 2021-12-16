@@ -255,8 +255,8 @@ $this->request = (object) array(
 ```php
 $this->post("/:hello/:abc", function() {
   $this->request->query["hello"]; // world (required)
-  $this->request->params["hello"]; // world (can be missing, using isset before accessing is recommended)
-  $this->request->body["hello"]; // world (can be missing, using isset before accessing is recommended)
+  $this->request->params["hello"]; // world (can be missing, using isset() before accessing is recommended)
+  $this->request->body["hello"]; // world (can be missing, using isset() before accessing is recommended)
   $this->send("");
 }
 ```

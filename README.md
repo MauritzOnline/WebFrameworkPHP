@@ -8,6 +8,8 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 Add `WebFramework.php` to your project and require it in `index.php`. To allow for routing a `.htaccess` file is used.
 
+> This framework should be able to run on **PHP 7.2+**, but might cause some issues due to the use of the `object` type hint. So the recommended PHP version for this framework is **PHP 8.0+**.
+
 **index.php**
 
 ```php

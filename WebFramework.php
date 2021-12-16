@@ -42,6 +42,7 @@ class WebFramework {
     }
   }
 
+  // Used for debugging
   public function get_debug_info() {
     return [
       "script_file" => $this->_script_file,
@@ -52,22 +53,28 @@ class WebFramework {
     ];
   }
 
+  // Adds a GET method route to be loaded
   public function get(string $route_str, callable $route_callback) {
     $this->_add_route("GET", $route_str, $route_callback);
   }
+  // Adds a POST method route to be loaded
   public function post(string $route_str, callable $route_callback) {
     $this->_add_route("POST", $route_str, $route_callback);
   }
+  // Adds a PUT method route to be loaded
   public function put(string $route_str, callable $route_callback) {
     $this->_add_route("PUT", $route_str, $route_callback);
   }
+  // Adds a PATCH method route to be loaded
   public function patch(string $route_str, callable $route_callback) {
     $this->_add_route("PATCH", $route_str, $route_callback);
   }
+  // Adds a DELETE method route to be loaded
   public function delete(string $route_str, callable $route_callback) {
     $this->_add_route("DELETE", $route_str, $route_callback);
   }
 
+  // Sends a response to the client
   public function send(string $data, int $status_code = 200, string $content_type = "text/plain") {
     http_response_code($status_code);
     header("Content-Type: " . trim($content_type));
@@ -75,6 +82,7 @@ class WebFramework {
     exit();
   }
 
+  // Sends a JSON response to the client (with Content-Type: application/json)
   public function send_json(object|array $data) {
     $data = (object) $data;
     if(!isset($data->status) || !is_numeric($data->status)) {
@@ -84,7 +92,7 @@ class WebFramework {
       $data->status = intval($data->status);
     }
 
-    // used to make sure status code is at the start of object
+    // Used to make sure status code is at the start of object
     $final_data = (object) array_merge(array(
       "status" => $data->status
     ), (array) $data);
@@ -92,10 +100,12 @@ class WebFramework {
     $this->send(json_encode($final_data), $final_data->status, "application/json");
   }
 
+  // Start the web framework (matching route, parsing data, etc...)
   public function start() {
     if(!empty($this->_routes_folder)) $this->_load_routes();
     $this->_route_has_params = false;
 
+    // Find matching routes for current URI
     $matching_routes = array_filter($this->_routes, function($route) {
       if($route->method === $this->request->method) {
         $exploded_route_uri = explode("/", $route->uri);
@@ -125,6 +135,7 @@ class WebFramework {
     $route_exists = false;
     $arr_key = 0;
 
+    // Check if at least one route was found with a callback
     if(count($matching_routes) > 0) {
       $arr_key = array_key_last($matching_routes);
       if(property_exists($matching_routes[$arr_key], "callback")) {
@@ -135,6 +146,7 @@ class WebFramework {
     if($route_exists) {
       $this->request->query = (isset($_GET) && !empty($_GET) ? $_GET : array());
 
+      // Handle "form-data" & "x-www-form-urlencoded" & parse raw[application/json] body (skips is HTTP method is "GET")
       if($this->request->method !== "GET") {
         if(isset($_POST) && !empty($_POST)) {
           $this->request->body = $_POST;
@@ -148,6 +160,7 @@ class WebFramework {
         }
       }
 
+      // Parse URI params
       if($this->_route_has_params) {
         $exploded_route_uri = explode("/", $matching_routes[$arr_key]->uri);
         $exploded_request_uri = explode("/", $this->request->uri);
@@ -163,19 +176,23 @@ class WebFramework {
         }
       }
 
+      // Run found route's callback
       if(is_callable($matching_routes[$arr_key]->callback)) {
         $this->found_route_uri = $matching_routes[$arr_key]->uri;
         call_user_func($matching_routes[$arr_key]->callback);
       }
     } else {
+      // No matching route could be found, send default 404
       $this->_not_found();
     }
   }
 
+  // Sends default 404 response (should not be used directly)
   private function _not_found() {
     $this->send("Not found!", 404);
   }
 
+  // Adds route (should not be used directly, use get(), post(), etc...)
   private function _add_route(string $method, string $route_str, callable $route_callback) {
     array_push($this->_routes, (object) [
       "method" => $method,
@@ -184,6 +201,7 @@ class WebFramework {
     ]);
   }
 
+  // Auto loads routes (should not be used directly, use start())
   private function _load_routes() {
     // Find all endpoints and require them (ignores hidden files)
     foreach(scandir($this->_routes_folder) as $key => $endpoint) {

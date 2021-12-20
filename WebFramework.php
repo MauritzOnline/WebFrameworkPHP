@@ -7,6 +7,10 @@
  * @version     0.0.3
  */
 
+// TODO: custom 404 response
+// TODO: add cors() method, similar to the helmet() method
+// TODO: add documentation for using WebFrameworkPHP with Nginx
+
 class WebFramework {
   private string $_routes_folder;
   private string $_script_file;
@@ -137,7 +141,7 @@ class WebFramework {
     if(!empty($this->_routes_folder)) $this->_load_routes();
     $this->_route_has_params = false;
 
-    // Find matching routes for current URI
+    // Find matching routes for current URI, TODO: optimize
     $matching_routes = array_filter($this->_routes, function($route) {
       if($route->method === $this->request->method) {
         $exploded_route_uri = explode("/", $route->uri);
@@ -192,7 +196,7 @@ class WebFramework {
         }
       }
 
-      // Parse URI params
+      // Parse URI params, TODO: try to get this included in the URI matcher?
       if($this->_route_has_params) {
         $exploded_route_uri = explode("/", $matching_routes[$arr_key]->uri);
         $exploded_request_uri = explode("/", $this->request->uri);

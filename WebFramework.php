@@ -138,20 +138,21 @@ class WebFramework {
     header_remove("X-Powered-By");
   }
 
+  // Parse Bearer token provided by HTTP requests and if valid adds it to $this->request->token
   public function auth() {
     $header = null;
 
-    // provided by: https://stackoverflow.com/questions/40582161/how-to-properly-use-bearer-tokens
-    if (isset($_SERVER["Authorization"])) {
+    // Authorization header getting code from: https://stackoverflow.com/a/40582472
+    if(isset($_SERVER["Authorization"])) {
       $header = trim($_SERVER["Authorization"]);
-    } else if (isset($_SERVER["HTTP_AUTHORIZATION"])) { //Nginx or fast CGI
+    } else if(isset($_SERVER["HTTP_AUTHORIZATION"])) { // Nginx or fast CGI
       $header = trim($_SERVER["HTTP_AUTHORIZATION"]);
-    } else if (function_exists("apache_request_headers")) {
+    } else if(function_exists("apache_request_headers")) {
       $request_headers = apache_request_headers();
       // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
       $request_headers = array_combine(array_map("ucwords", array_keys($request_headers)), array_values($request_headers));
-      //print_r($requestHeaders);
-      if (isset($request_headers["Authorization"])) {
+
+      if(isset($request_headers["Authorization"])) {
           $header = trim($request_headers["Authorization"]);
       }
     }

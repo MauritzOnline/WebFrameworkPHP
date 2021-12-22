@@ -243,9 +243,10 @@ $this->send_json(array(
 
 ```php
 $this->request = (object) array(
-  "method" => $_SERVER["REQUEST_METHOD"],
-  "content_type" => $_SERVER["CONTENT_TYPE"],
+  "method" => $_SERVER["REQUEST_METHOD"], // HTTP method of the request
+  "content_type" => $_SERVER["CONTENT_TYPE"], // Content-Type of the request
   "uri" => "...", // the current URI
+  "token" => "...", // the parsed bearer token of the request (only gets parsed if the auth() method is called before start()) [will be null if not found]
   "query" => array(...), // parsed URI queries (?hello=world&abc=123)
   "params" => array(...), // parsed URI params (/:hello/:abc)
   "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
@@ -254,12 +255,21 @@ $this->request = (object) array(
 
 **Examples:**
 
+```bash
+curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
+     -H 'Authorization: Bearer my_secret_token'\
+     -H "Content-type: application/json"\
+     -d '{ "title": "My sticky note", "contents": "Remember Sunday" }'
+```
+
 ```php
-$this->post("/:hello/:abc", function() {
-  $this->request->query["hello"]; // world (required)
-  $this->request->params["hello"]; // world (can be missing, using isset() before accessing is recommended)
-  $this->request->body["hello"]; // world (can be missing, using isset() before accessing is recommended)
-  $this->send("");
+$this->post("/note/:id", function() {
+  $this->request->token; // "my_secret_token" (can be null, either if Authorization wasn't enabled or if it wasn't provided by the request)
+  $this->request->params["id"]; // "12345678" (required)
+  $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
+  $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)
+  $this->request->body["contents"]; // "Remember Sunday" (can be missing, using isset() before accessing is recommended)
+  $this->send("Note added");
 }
 ```
 

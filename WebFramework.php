@@ -18,6 +18,7 @@ class WebFramework {
   private string $_full_request_uri;
   private bool $_route_has_params = false;
   private $_routes = array();
+  private $_found404 = null;
 
   protected string $root_uri;
   protected string $found_route_uri;
@@ -178,29 +179,34 @@ class WebFramework {
   public function start() {
     if(!empty($this->_routes_folder)) $this->_load_routes();
     $this->_route_has_params = false;
+    $this->_found404 = null;
 
     // Find matching routes for current URI, TODO: optimize
     $matching_routes = array_filter($this->_routes, function($route) {
       if($route->method === $this->request->method || $route->method === "ALL") {
-        $exploded_route_uri = explode("/", $route->uri);
-        $exploded_request_uri = explode("/", $this->request->uri);
-        $uri_matches = true;
-        
-        if(count($exploded_route_uri) === count($exploded_request_uri)) {
-          foreach ($exploded_request_uri as $key => $value) {
-            if($exploded_route_uri[$key] !== $value) {
-              if(!str_starts_with($exploded_route_uri[$key], ":")) {
-                $uri_matches = false;
-              } else {
-                $this->_route_has_params = true;
+        if($route->uri === ":404") {
+          $this->_found404 = $route;
+        } else {
+          $exploded_route_uri = explode("/", $route->uri);
+          $exploded_request_uri = explode("/", $this->request->uri);
+          $uri_matches = true;
+          
+          if(count($exploded_route_uri) === count($exploded_request_uri)) {
+            foreach ($exploded_request_uri as $key => $value) {
+              if($exploded_route_uri[$key] !== $value) {
+                if(!str_starts_with($exploded_route_uri[$key], ":")) {
+                  $uri_matches = false;
+                } else {
+                  $this->_route_has_params = true;
+                }
               }
             }
+          } else {
+            $uri_matches = false;
           }
-        } else {
-          $uri_matches = false;
-        }
 
-        return $uri_matches;
+          return $uri_matches;
+        }
       } else {
         return false;
       }
@@ -215,6 +221,10 @@ class WebFramework {
       if(property_exists($matching_routes[$arr_key], "callback")) {
         $route_exists = true;
       }
+    }
+
+    if($this->_found404 !== null && !property_exists($this->_found404, "callback")) {
+      $this->_found404 = null;
     }
 
     if($route_exists) {
@@ -251,32 +261,36 @@ class WebFramework {
       }
 
       // Run found route's callback
-      if(is_callable($matching_routes[$arr_key]->callback)) {
-        if($matching_routes[$arr_key]->is_html) {
-          http_response_code($matching_routes[$arr_key]->html_status_code);
-          header("Content-Type: text/html");
-        }
-
-        $this->found_route_uri = $matching_routes[$arr_key]->uri;
-        call_user_func($matching_routes[$arr_key]->callback);
-
-        if($matching_routes[$arr_key]->is_html) {
-          exit();
-        }
-      }
+      $this->_run_route($matching_routes[$arr_key]);
     } else {
-      // No matching route could be found, send default 404
-      $this->_not_found();
+      if($this->_found404 !== null) {
+        $this->_run_route($this->_found404);
+      } else {
+        // No matching route could be found, send default 404
+        $this->_not_found();
+      }
+    }
+  }
+
+  private function _run_route(object $route) {
+    if(is_callable($route->callback)) {
+      if($route->is_html) {
+        http_response_code($route->html_status_code);
+        header("Content-Type: text/html");
+      }
+
+      $this->found_route_uri = $route->uri;
+      call_user_func($route->callback);
+
+      if($route->is_html) {
+        exit();
+      }
     }
   }
 
   // Sends default 404 response (should not be used directly)
   private function _not_found() {
-    if(file_exists($this->_routes_folder . "/_not_found.php")) {
-      require_once($this->_routes_folder . "/_not_found.php");
-    } else {
-      $this->send("Not found!", 404);
-    }
+    $this->send("Not found!", 404);
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)
@@ -295,7 +309,7 @@ class WebFramework {
   private function _load_routes() {
     // Find all endpoints and require them (ignores hidden files)
     foreach(scandir($this->_routes_folder) as $key => $endpoint) {
-      if(!str_starts_with($endpoint, ".") && !str_starts_with($endpoint, "_")) {
+      if(!str_starts_with($endpoint, ".")) {
         if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
           require_once($this->_routes_folder . "/" . $endpoint);
         }

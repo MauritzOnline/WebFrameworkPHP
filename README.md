@@ -275,6 +275,26 @@ $this->post("/note/:id", function() {
 
 ---
 
+## Handling Bearer tokens
+
+You can use the provided `auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->auth(); // activate parsing of Bearer token
+$webFramework->start();
+
+?>
+```
+
+---
+
 ## HTML rendering
 
 > HTML can also be rendered at specified routes using the `render_html()` method.
@@ -342,7 +362,7 @@ $this->render_html("/document/:id", function() {
 require_once("./classes/WebFramework.php");
 
 $webFramework = new WebFramework();
-$webFramework->helmet();
+$webFramework->helmet(); // activate Helmet
 $webFramework->start();
 
 ?>

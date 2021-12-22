@@ -264,7 +264,7 @@ curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
 
 ```php
 $this->post("/note/:id", function() {
-  $this->request->token; // "my_secret_token" (can be null, either if Authorization wasn't enabled or if it wasn't provided by the request)
+  $this->request->token; // "my_secret_token" (can be null, either if Bearer token parsing wasn't enabled using auth() or if a valid HTTP header couldn't be found in the request)
   $this->request->params["id"]; // "12345678" (required)
   $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
   $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)

@@ -34,7 +34,7 @@ class WebFramework {
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
       "uri" => rtrim(str_replace($this->root_uri, "", $this->_full_request_uri), "/"),
-      "token" => null, // Will only get parsed if auth() method is called before start()
+      "token" => null, // Only gets parsed if the auth() method is called before start()
       "query" => array(),
       "params" => array(),
       "body" => array(),

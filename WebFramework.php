@@ -10,7 +10,6 @@
 // TODO: custom 404 response
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
-// TODO: add auth() method, would enable parsing for bearer token
 
 class WebFramework {
   private string $_routes_folder;
@@ -137,6 +136,35 @@ class WebFramework {
     header("Referrer-Policy: no-referrer");
     header("X-XSS-Protection: 0");
     header_remove("X-Powered-By");
+  }
+
+  public function auth() {
+    $header = null;
+
+    // provided by: https://stackoverflow.com/questions/40582161/how-to-properly-use-bearer-tokens
+    if (isset($_SERVER["Authorization"])) {
+      $header = trim($_SERVER["Authorization"]);
+    } else if (isset($_SERVER["HTTP_AUTHORIZATION"])) { //Nginx or fast CGI
+      $header = trim($_SERVER["HTTP_AUTHORIZATION"]);
+    } else if (function_exists("apache_request_headers")) {
+      $request_headers = apache_request_headers();
+      // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+      $request_headers = array_combine(array_map("ucwords", array_keys($request_headers)), array_values($request_headers));
+      //print_r($requestHeaders);
+      if (isset($request_headers["Authorization"])) {
+          $header = trim($request_headers["Authorization"]);
+      }
+    }
+
+    // strlen > 7, comes from "Bearer X", since it has to be at least 8 characters to contain a token
+    if($header !== null && strlen($header) > 7) {
+      if(str_starts_with($header, "Bearer ")) {
+        $exploded_header = explode(" ", $header);
+        if(count($exploded_header) > 1) {
+          $this->request->token = $exploded_header[array_key_last($exploded_header)];
+        }
+      }
+    }
   }
 
   // Start the web framework (matching route, parsing data, etc...)

@@ -133,7 +133,7 @@ $webFramework->get("/manual", function() {
 
 ## Routing
 
-> The following HTTP methods are available: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. URI queries in the route URI will be ignored, e.g. `"/document?hello=world"` will resolve to `/document`, as such URI queries should not be used in the route URI. The `all()` method can be used to load a route for all HTTP methods.
+> The following HTTP methods are available: `ALL` _(special)_, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. URI queries in the route URI will be ignored, e.g. `"/document?hello=world"` will resolve to `/document`, as such URI queries should not be used in the route URI. The `all()` method can be used to load a route for all HTTP methods.
 
 ```php
 <?php
@@ -198,7 +198,7 @@ $this->post("/document", function() {
 > Base response function, allows you to send any data you want with any Content-Type and status code.
 
 ```php
-public function send(string $data, int $status_code = 200, string $content_type = "text/plain") { ... }
+function send(string $data, int $status_code = 200, string $content_type = "text/plain")
 ```
 
 **Examples:**
@@ -215,7 +215,7 @@ $this->send(json_encode(array(...)), 200, "application/json"); // 200 OK
 > JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`.
 
 ```php
-public function send_json(object|array $data) { ... }
+function send_json(object|array $data)
 ```
 
 **Examples:**
@@ -307,6 +307,12 @@ $webFramework->start();
 
 > HTML can also be rendered at specified routes using the `render_html()` method.
 
+> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase.
+
+```php
+function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET")
+```
+
 ### Examples
 
 **/routes/root.php**
@@ -361,6 +367,8 @@ $this->render_html("/document/:id", function() {
 ## Custom 404 response
 
 You can easily customize the provided 404 response for any HTTP method by settings the route URI to: `:404`. Customization can be done on a per HTTP method way, or for all methods using `all()`.
+
+> Custom 404's can also use the `render_html()` method for rendering more complex pages.
 
 **Example:**
 

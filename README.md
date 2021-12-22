@@ -133,12 +133,20 @@ $webFramework->get("/manual", function() {
 
 ## Routing
 
-> The following HTTP methods are available: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. URI queries in the route URI will be ignored, e.g. `"/document?hello=world"` will resolve to `/document`, as such URI queries should not be used in the route URI.
+> The following HTTP methods are available: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. URI queries in the route URI will be ignored, e.g. `"/document?hello=world"` will resolve to `/document`, as such URI queries should not be used in the route URI. The `all()` method can be used to load a route for all HTTP methods.
 
 ```php
 <?php
 
-// example #1: GET request handling
+// example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
+$this->all("/info", function() {
+  $this->send_json(array(
+    "status" => 200,
+    "message" => "...",
+  ));
+});
+
+// example #2: GET request handling
 $this->get("/document", function() {
   // ... documents ...
 
@@ -149,7 +157,7 @@ $this->get("/document", function() {
   ));
 });
 
-// example #2: GET request handling, with URI param
+// example #3: GET request handling, with URI param
 $this->get("/document/:id", function() {
   $document_id = $this->request->params["id"];
 
@@ -162,7 +170,7 @@ $this->get("/document/:id", function() {
   ));
 });
 
-// example #3: POST request handling
+// example #4: POST request handling
 $this->post("/document", function() {
   $document_title = $this->request->body["title"];
   $document_contents = $this->request->body["contents"];
@@ -346,6 +354,41 @@ $this->render_html("/document/:id", function() {
   </body>
 </html>
 <?php }, 200); ?>
+```
+
+---
+
+## Custom 404 response
+
+You can easily customize the provided 404 response for any HTTP method by settings the route URI to: `:404`. Customization can be done on a per HTTP method way, or for all methods using `all()`.
+
+**Example:**
+
+```php
+<?php
+
+// example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
+$this->all(":404", function() {
+  $this->send("No route found!", 404);
+});
+
+// example #2: GET request handling
+$this->get(":404", function() {
+  $this->send_json(array(
+    "status" => 404,
+    "message" => "No route found!",
+  ));
+});
+
+// example #3: POST request handling
+$this->post(":404", function() {
+  $this->send_json(array(
+    "status" => 404,
+    "message" => "No route found!",
+  ));
+});
+
+?>
 ```
 
 ---

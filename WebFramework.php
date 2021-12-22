@@ -10,6 +10,7 @@
 // TODO: custom 404 response
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
+// TODO: create extensive testing project (will be tested using Postman, or a similar tool)
 
 class WebFramework {
   private string $_routes_folder;
@@ -26,13 +27,13 @@ class WebFramework {
   public function __construct($routes_folder = "routes") {
     $this->_routes_folder = $routes_folder;
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
-    $this->root_uri = str_replace("/index.php", "", $this->_script_file);
+    $this->root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
     $this->_full_request_uri = $_SERVER["REQUEST_URI"];
 
     $this->request = (object) array(
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
-      "uri" => rtrim(str_replace($this->root_uri, "", $this->_full_request_uri), "/"),
+      "uri" => rtrim($this->_str_replace_once($this->root_uri, "", $this->_full_request_uri), "/"),
       "token" => null, // Only gets parsed if the auth() method is called before start()
       "query" => array(),
       "params" => array(),
@@ -64,6 +65,10 @@ class WebFramework {
     $this->_add_route("GET", $route_str, $route_callback, true, $status_code);
   }
 
+  // Adds a route to be loaded for all methods
+  public function all(string $route_str, callable $route_callback) {
+    $this->_add_route("ALL", $route_str, $route_callback);
+  }
   // Adds a GET method route to be loaded
   public function get(string $route_str, callable $route_callback) {
     $this->_add_route("GET", $route_str, $route_callback);
@@ -176,7 +181,7 @@ class WebFramework {
 
     // Find matching routes for current URI, TODO: optimize
     $matching_routes = array_filter($this->_routes, function($route) {
-      if($route->method === $this->request->method) {
+      if($route->method === $this->request->method || $route->method === "ALL") {
         $exploded_route_uri = explode("/", $route->uri);
         $exploded_request_uri = explode("/", $this->request->uri);
         $uri_matches = true;
@@ -267,7 +272,11 @@ class WebFramework {
 
   // Sends default 404 response (should not be used directly)
   private function _not_found() {
-    $this->send("Not found!", 404);
+    if(file_exists($this->_routes_folder . "/_not_found.php")) {
+      require_once($this->_routes_folder . "/_not_found.php");
+    } else {
+      $this->send("Not found!", 404);
+    }
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)
@@ -286,11 +295,21 @@ class WebFramework {
   private function _load_routes() {
     // Find all endpoints and require them (ignores hidden files)
     foreach(scandir($this->_routes_folder) as $key => $endpoint) {
-      if(preg_match("/^[.]/i", $endpoint, $matches) === 0) {
-        if(preg_match("/[.]php$/i", $endpoint, $matches) === 1) {
+      if(!str_starts_with($endpoint, ".") && !str_starts_with($endpoint, "_")) {
+        if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
           require_once($this->_routes_folder . "/" . $endpoint);
         }
       }
+    }
+  }
+
+  // Replaces found string in provided string with something else but only replaces the first occurrence
+  private function _str_replace_once(string $needle, string $replace, string $haystack) {
+    $pos = strpos($haystack, $needle);
+    if($pos !== false) {
+      return substr_replace($haystack, $replace, $pos, strlen($needle));
+    } else {
+      return $haystack;
     }
   }
 }

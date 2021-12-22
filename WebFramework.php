@@ -61,8 +61,11 @@ class WebFramework {
   }
 
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
-  public function render_html(string $route_str, callable $route_callback, $status_code = 200) {
-    $this->_add_route("GET", $route_str, $route_callback, true, $status_code);
+  public function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET") {
+    if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {
+      $method = "GET";
+    }
+    $this->_add_route(strtoupper($method), $route_str, $route_callback, true, $status_code);
   }
 
   // Adds a route to be loaded for all methods

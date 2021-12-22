@@ -11,7 +11,6 @@
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
 // TODO: add auth() method, would enable parsing for bearer token
-// FIXME: trailing slashes don't seem to match valid route when URI queries are added (e.g. "/api/note/:id" only matches "/api/note/123?a=b" and not "/api/note/123/?a=b")
 
 class WebFramework {
   private string $_routes_folder;
@@ -43,10 +42,11 @@ class WebFramework {
 
     $this->found_route_uri = "";
 
-    $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
     if(isset($_GET) && !empty($_GET)) {
       $this->request->uri = explode("?", $this->request->uri)[0];
+      $this->request->uri = rtrim($this->request->uri, "/");
     }
+    $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
   }
 
   // Used for debugging

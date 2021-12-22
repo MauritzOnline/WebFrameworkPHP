@@ -7,7 +7,6 @@
  * @version     0.0.3
  */
 
-// TODO: custom 404 response
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
 // TODO: create extensive testing project (will be tested using Postman, or a similar tool)

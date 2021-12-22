@@ -10,6 +10,7 @@
 // TODO: custom 404 response
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
+// TODO: add auth() method, would enable parsing for bearer token
 
 class WebFramework {
   private string $_routes_folder;
@@ -33,6 +34,7 @@ class WebFramework {
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
       "uri" => rtrim(str_replace($this->root_uri, "", $this->_full_request_uri), "/"),
+      "token" => null, // Will only get parsed if auth() method is called before start()
       "query" => array(),
       "params" => array(),
       "body" => array(),

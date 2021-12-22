@@ -11,6 +11,7 @@
 // TODO: add cors() method, similar to the helmet() method
 // TODO: add documentation for using WebFrameworkPHP with Nginx
 // TODO: add auth() method, would enable parsing for bearer token
+// FIXME: trailing slashes don't seem to match valid route (e.g. "/api/note/:id" only matches "/api/note/123" and not "/api/note/123/")
 
 class WebFramework {
   private string $_routes_folder;

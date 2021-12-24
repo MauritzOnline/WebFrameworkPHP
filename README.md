@@ -6,9 +6,13 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 ## Installation
 
+Go download version [0.0.4](https://github.com/MauritzOnline/WebFrameworkPHP/releases/tag/v0.0.4) _(latest release)_.
+
+> The `main` branch can also be downloaded, but may include code that hasn't been properly tested yet.
+
 Add `WebFramework.php` to your project and require it in `index.php`. To allow for routing a `.htaccess` file is used.
 
-> This framework requires **PHP 8.0+** to work, this is due to the usage of the `object` type hint and the use of `str_starts_with`.
+> This framework requires **PHP 8.0+** to work, this is due to the usage of the `object` type hint and the use of `str_starts_with` and `str_ends_with`.
 
 **index.php**
 

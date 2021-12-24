@@ -4,7 +4,7 @@
  *
  * @copyright   Copyright (c) 2021, Mauritz Nilsson <mail@mauritzonline.com>
  * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/main/LICENSE
- * @version     0.0.3
+ * @version     0.0.4
  */
 
 // TODO: add cors() method, similar to the helmet() method

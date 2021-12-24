@@ -147,7 +147,7 @@ class WebFramework {
   }
 
   // Parse Bearer token provided by HTTP requests and if valid adds it to $this->request->token
-  public function auth() {
+  public function parse_auth() {
     $header = null;
     $this->request->token = null;
 

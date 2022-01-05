@@ -13,6 +13,7 @@ toc_lines = [
 toc_start = -1
 toc_end = -1
 
+# Parse for headings
 for index, line in enumerate(current_lines):
     inside_toc = False
     if toc_start >= 0 and toc_end == -1:
@@ -27,6 +28,7 @@ for index, line in enumerate(current_lines):
     elif line.startswith("##") and inside_toc == False:
         split_line = line.split(" ")
         if len(split_line) > 0:
+            # Parse heading
             heading = line.replace(split_line[0], "").strip()
             heading_link = re.sub(
                 r"[^a-z0-9\-_]+", "", heading.lower().replace(' ', '-'), flags=re.IGNORECASE)
@@ -36,10 +38,13 @@ for index, line in enumerate(current_lines):
 
 toc_lines.append("\n")
 
+# Make sure both the start and end ToC tags were found
 if toc_start >= 0 and toc_end > toc_start:
+    # Replace everything inside ToC tags with Table of Contents
     current_lines = current_lines[:(toc_start + 1)] + \
         toc_lines + current_lines[toc_end:]
 
+    # Write changes to file
     readme_file = open("./README.md", "w")
     readme_file.writelines(current_lines)
     readme_file.close()

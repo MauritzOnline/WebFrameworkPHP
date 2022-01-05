@@ -5,7 +5,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 ---
 
 <!-- START ToC -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN "generate_toc.py" TO UPDATE -->
+<!-- DON'T edit this section, instead run "generate_toc.py" to update -->
 
 ## Table of Contents
 

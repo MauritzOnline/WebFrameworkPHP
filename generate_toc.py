@@ -7,7 +7,7 @@ current_lines = readme_file.readlines()
 readme_file.close()
 
 toc_lines = [
-    "<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN \"generate_toc.py\" TO UPDATE -->\n\n",
+    "<!-- DON'T edit this section, instead run \"generate_toc.py\" to update -->\n\n",
     "## Table of Contents\n\n",
 ]
 toc_start = -1

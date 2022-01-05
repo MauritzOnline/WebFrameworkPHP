@@ -2,9 +2,10 @@
 
 import re
 
-readme_file = open("./README.md", "r")
-current_lines = readme_file.readlines()
-readme_file.close()
+MARKDOWN_FILE_PATH = "./README.md"
+markdown_file = open(MARKDOWN_FILE_PATH, "r")
+current_lines = markdown_file.readlines()
+markdown_file.close()
 
 toc_lines = [
     "<!-- DON'T edit this section, instead run \"generate_toc.py\" to update -->\n\n",
@@ -45,9 +46,9 @@ if toc_start >= 0 and toc_end > toc_start:
         toc_lines + current_lines[toc_end:]
 
     # Write changes to file
-    readme_file = open("./README.md", "w")
-    readme_file.writelines(current_lines)
-    readme_file.close()
+    markdown_file = open(MARKDOWN_FILE_PATH, "w")
+    markdown_file.writelines(current_lines)
+    markdown_file.close()
 
     print(
         f"Wrote the following ToC lines at line {str(toc_start + 2)} to line {str(toc_end)}:\n")

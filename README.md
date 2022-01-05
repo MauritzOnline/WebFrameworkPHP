@@ -422,3 +422,89 @@ $webFramework->start();
 
 ?>
 ```
+
+---
+
+## Custom headers
+
+You can send custom HTTP headers either for all routes or on a per route basis.
+
+**Example all routes:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+// Example HTTP header (will be activated for all loaded routes)
+header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
+
+$webFramework = new WebFramework();
+// Custom headers can be set at any point until "$webFramework->start();"
+$webFramework->start();
+
+?>
+```
+
+**Example one routes:**
+
+```php
+<?php
+
+$this->get("/hello", function() {
+  // Example HTTP header (will be activated for this route only)
+  header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
+
+  $this->send_json(array(
+    "status" => 200,
+    "message" => "Hello world!",
+  ));
+});
+
+?>
+```
+
+---
+
+## CORS
+
+Implementing CORS handling is not something I feel is necessary. The point of this framework is to only provide what is necessary and potential security benefits. As such if you want to add CORS handling you can add it to all loaded routes by adding it above your call to `start()`. Also since CORS can be handled in various ways, implementing it would be counter productive.
+
+> CORS handling can also be added on a per route basis. If this is done then it has to be added before `send()`, `send_json()` or `render_html()`.
+
+**Example all routes:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+// Simple example CORS headers (will be activated for all loaded routes)
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
+
+$webFramework = new WebFramework();
+// CORS headers can be set at any point until "$webFramework->start();"
+$webFramework->start();
+
+?>
+```
+
+**Example one routes:**
+
+```php
+<?php
+
+$this->get("/hello", function() {
+  // Simple example CORS headers (will be activated for this route only)
+  header("Access-Control-Allow-Origin: *");
+  header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
+
+  $this->send_json(array(
+    "status" => 200,
+    "message" => "Hello world!",
+  ));
+});
+
+?>
+```

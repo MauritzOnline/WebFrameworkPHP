@@ -4,6 +4,31 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 ---
 
+<!-- START ToC -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN "generate_toc.py" TO UPDATE -->
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Route loading](#route-loading)
+  - [Auto loading](#auto-loading)
+  - [Manual loading](#manual-loading)
+- [Routing](#routing)
+- [Sending responses](#sending-responses)
+  - [send()](#send)
+  - [send_json()](#send_json)
+- [Request data](#request-data)
+- [Handling Bearer tokens](#handling-bearer-tokens)
+- [HTML rendering](#html-rendering)
+- [Custom 404 response](#custom-404-response)
+- [Helmet](#helmet)
+- [Custom headers](#custom-headers)
+- [CORS](#cors)
+
+<!-- END ToC -->
+
+---
+
 ## Installation
 
 Go download version [0.0.4](https://github.com/MauritzOnline/WebFrameworkPHP/releases/tag/v0.0.4) _(latest release)_.
@@ -14,7 +39,7 @@ Add `WebFramework.php` to your project and require it in `index.php`. To allow f
 
 > This framework requires **PHP 8.0+** to work, this is due to the usage of the `object` type hint and the use of `str_starts_with` and `str_ends_with`.
 
-**index.php**
+`/index.php`
 
 ```php
 <?php
@@ -68,7 +93,7 @@ RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
 
 ### Auto loading
 
-**/index.php**
+`/index.php`
 
 ```php
 <?php
@@ -81,7 +106,7 @@ $webFramework->start();
 ?>
 ```
 
-**/routes/demo.php**
+`/routes/demo.php`
 
 ```php
 <?php
@@ -100,7 +125,7 @@ $this->get("/demo", function() {
 
 ### Manual loading
 
-**/index.php**
+`/index.php`
 
 ```php
 <?php
@@ -114,7 +139,7 @@ $webFramework->start();
 ?>
 ```
 
-**/manual_route.php**
+`/manual_route.php`
 
 ```php
 <?php
@@ -317,9 +342,9 @@ $webFramework->start();
 function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET")
 ```
 
-### Examples
+**Examples:**
 
-**/routes/root.php**
+`/routes/root.php`
 
 ```php
 <?php $this->render_html("/", function() { ?>
@@ -340,7 +365,7 @@ function render_html(string $route_str, callable $route_callback, $status_code =
 <?php }); ?>
 ```
 
-**/routes/document.php**
+`/routes/document.php`
 
 ```php
 <?php

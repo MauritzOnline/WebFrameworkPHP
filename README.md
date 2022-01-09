@@ -35,7 +35,7 @@ Go download version [0.0.4](https://github.com/MauritzOnline/WebFrameworkPHP/rel
 
 > The `main` branch can also be downloaded, but may include code that hasn't been properly tested yet.
 
-Add `WebFramework.php` to your project and require it in `index.php`. To allow for routing a `.htaccess` file is used.
+Add `WebFramework.php` to your project and require it in `index.php`. To allow for routing a `.htaccess` file is used for Apache and `nginx.conf` for Nginx _(or `sites-available/DOMAIN`)_.
 
 > This framework requires **PHP 8.0+** to work, this is due to the usage of the `object` type hint and the use of `str_starts_with` and `str_ends_with`.
 
@@ -55,7 +55,7 @@ $webFramework->start(); // runs last (after all routes have been loaded)
 ?>
 ```
 
-**Options 1: `.htaccess` when running framework at domain root _[`https://example.com/`]_**
+**Option 1: `.htaccess` when running framework at domain root _[`https://example.com/`]_**
 
 ```apacheconf
 RewriteEngine On
@@ -70,7 +70,7 @@ RewriteCond %{HTTPS} !=on
 RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
 ```
 
-**Options 2: `.htaccess` when running framework inside a folder _[`https://example.com/my_api/`]_**
+**Option 2: `.htaccess` when running framework inside a folder _[`https://example.com/my_api/`]_**
 
 ```apacheconf
 RewriteEngine On
@@ -83,6 +83,30 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 RewriteCond %{HTTP_HOST} !=localhost
 RewriteCond %{HTTPS} !=on
 RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
+```
+
+**Option 3: `nginx.conf` when running framework at domain root _[`https://example.com/`]_**
+
+> Since forcing **SSL** can be handled independently of this addition it won't be included in this example.
+
+```apacheconf
+server {
+    # ... other config items ...
+
+    rewrite ^/(.*)$ /index.php last;
+}
+```
+
+**Option 4: `nginx.conf` when running framework inside a folder _[`https://example.com/my_api/`]_**
+
+> Since forcing **SSL** can be handled independently of this addition it won't be included in this example.
+
+```apacheconf
+server {
+    # ... other config items ...
+
+    rewrite ^/my_api/(.*)$ /my_api/index.php last;
+}
 ```
 
 ---

@@ -7,7 +7,6 @@
  * @version     0.0.4
  */
 
-// TODO: add documentation for using WebFrameworkPHP with Nginx
 // TODO: create extensive testing project (will be tested using Postman, or a similar tool)
 
 class WebFramework {

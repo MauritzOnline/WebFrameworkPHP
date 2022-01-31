@@ -25,7 +25,7 @@ class WebFramework {
 
   public $debug_mode = false; // will print additional information when errors occur
 
-  public function __construct($routes_folder = "routes") {
+  public function __construct($routes_folder = "routes", $provide_error_handler = true) {
     $this->_routes_folder = $routes_folder;
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
     $this->root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
@@ -49,58 +49,62 @@ class WebFramework {
     }
     $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
 
-    // Default error handler
-    $this->_error_handler = function($error_code, $error_message) {
-      $this->send($error_message . " (E" . $error_code . ")!", 500);
-    };
+    if($provide_error_handler) {
+      // Default error handler
+      $this->_error_handler = function($error_code, $error_message) {
+        $this->send($error_message . " (E" . $error_code . ")!", 500);
+      };
 
-    /* register_shutdown_function(function() {
-      die("(die) shutdown");
-    }); */
-    set_error_handler(function($level, $message, $file, $line) {
-      $error_message = "";
-      if($this->debug_mode) {
-        $error_type = "Unknown";
-        switch ($level) {
-          case E_USER_ERROR:
-            $error_type = "Error";
-            break;
-      
-          case E_USER_WARNING:
-            $error_type = "Warning";
-            break;
-      
-          case E_USER_NOTICE:
-            $error_type = "Notice";
-            break;
-          }
+      /* register_shutdown_function(function() {
+        die("(die) shutdown");
+      }); */
+      set_error_handler(function($level, $message, $file, $line) {
+        $error_message = "";
+        if($this->debug_mode) {
+          $error_type = "Unknown";
+          switch ($level) {
+            case E_USER_ERROR:
+              $error_type = "Error";
+              break;
+        
+            case E_USER_WARNING:
+              $error_type = "Warning";
+              break;
+        
+            case E_USER_NOTICE:
+              $error_type = "Notice";
+              break;
+            }
 
-        $error_message = join(" ", array(
-          "Type: " . $error_type . ";",
-          "Message: {" . $message . "};",
-          "File: {" . $file . "};",
-          "Line: {" . $line . "};"
-        ));
-        $this->_send_error(10000, $error_message);
-      } else {
-        $this->_send_error(10000);
-      }
-    });
+          $error_message = join(" ", array(
+            "Type: " . $error_type . ";",
+            "Message: {" . $message . "};",
+            "File: {" . $file . "};",
+            "Line: {" . $line . "};"
+          ));
+          $this->_send_error(10000, $error_message);
+        } else {
+          $this->_send_error(10000);
+        }
+      });
 
-    set_exception_handler(function($e) {
-      $error_message = "";
-      if($this->debug_mode) {
-        $error_message = join(" ", array(
-          "Type: " . get_class($e) . ";",
-          "Message: {" . $e->getMessage() . "};",
-          "File: {" . $e->getFile() . "};",
-          "Line: {" . $e->getLine() . "};"
-        ));
-        $this->_send_error(10001, $error_message);
-      } else {
-        $this->_send_error(10001);
-      }
-    });
+      set_exception_handler(function($e) {
+        $error_message = "";
+        if($this->debug_mode) {
+          $error_message = join(" ", array(
+            "Type: " . get_class($e) . ";",
+            "Message: {" . $e->getMessage() . "};",
+            "File: {" . $e->getFile() . "};",
+            "Line: {" . $e->getLine() . "};"
+          ));
+          $this->_send_error(10001, $error_message);
+        } else {
+          $this->_send_error(10001);
+        }
+      });
+    } else {
+      $this->_error_handler = function() {};
+    }
   }
 
   // Used for debugging

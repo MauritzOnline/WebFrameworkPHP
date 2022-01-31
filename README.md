@@ -484,6 +484,16 @@ $webFramework->set_custom_error_handler(function(int $error_code, string $error_
 
 ---
 
+## Error codes
+
+You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
+
+- **E10000:** Fatal error caused by loaded routes or other custom code.
+- **E10001:** Error sent using `trigger_error`.
+- **E20000:** Error sent from `send_json`, caused by failed JSON encode.
+
+---
+
 ## Helmet
 
 > This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.

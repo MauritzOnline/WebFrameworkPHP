@@ -58,6 +58,22 @@ class WebFramework {
       /* register_shutdown_function(function() {
         die("(die) shutdown");
       }); */
+
+      set_exception_handler(function($e) {
+        $error_message = "";
+        if($this->debug_mode) {
+          $error_message = join(" ", array(
+            "Type: " . get_class($e) . ";",
+            "Message: {" . $e->getMessage() . "};",
+            "File: {" . $e->getFile() . "};",
+            "Line: {" . $e->getLine() . "};"
+          ));
+          $this->_send_error(10000, $error_message);
+        } else {
+          $this->_send_error(10000);
+        }
+      });
+      
       set_error_handler(function($level, $message, $file, $line) {
         $error_message = "";
         if($this->debug_mode) {
@@ -81,21 +97,6 @@ class WebFramework {
             "Message: {" . $message . "};",
             "File: {" . $file . "};",
             "Line: {" . $line . "};"
-          ));
-          $this->_send_error(10000, $error_message);
-        } else {
-          $this->_send_error(10000);
-        }
-      });
-
-      set_exception_handler(function($e) {
-        $error_message = "";
-        if($this->debug_mode) {
-          $error_message = join(" ", array(
-            "Type: " . get_class($e) . ";",
-            "Message: {" . $e->getMessage() . "};",
-            "File: {" . $e->getFile() . "};",
-            "Line: {" . $e->getLine() . "};"
           ));
           $this->_send_error(10001, $error_message);
         } else {

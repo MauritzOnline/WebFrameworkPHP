@@ -168,9 +168,7 @@ $webFramework->start();
 ```php
 <?php
 
-$webFramework->get("/manual", function() {
-  global $webFramework;
-
+$webFramework->get("/manual", function() use($webFramework) {
   $webFramework->send_json(array(
     "status" => 200,
     "message" => "Hello world!",

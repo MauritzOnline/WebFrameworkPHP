@@ -21,6 +21,8 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Handling Bearer tokens](#handling-bearer-tokens)
 - [HTML rendering](#html-rendering)
 - [Custom 404 response](#custom-404-response)
+- [Custom error handler](#custom-error-handler)
+- [Error codes](#error-codes)
 - [Helmet](#helmet)
 - [Custom headers](#custom-headers)
 - [CORS](#cors)

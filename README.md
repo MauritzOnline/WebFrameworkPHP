@@ -452,6 +452,38 @@ $this->post(":404", function() {
 
 ---
 
+## Custom error handler
+
+You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
+
+> Debug mode can be turned on to get more detailed error messages.
+
+> Error handling can also be disabled in the constructor, e.g. `$webFramework = new WebFramework("routes", false);`.
+
+**Example:**
+
+```php
+<?php
+
+$webFramework = new WebFramework();
+$webFramework->debug_mode = true; // use this if you want more detailed messages (not recommended for production)
+
+$webFramework->set_custom_error_handler(function(int $error_code, string $error_message) use($webFramework) {
+  $webFramework->send_json(array(
+    "status" => 500,
+    "message" => "Something went wrong, please try again later",
+    "error" => array(
+      "code" => $error_code,
+      "message" => $error_message,
+    )
+  ));
+});
+
+?>
+```
+
+---
+
 ## Helmet
 
 > This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.

@@ -4,7 +4,7 @@
  *
  * @copyright   Copyright (c) 2021, Mauritz Nilsson <mail@mauritzonline.com>
  * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/main/LICENSE
- * @version     0.0.4
+ * @version     0.0.5
  */
 
 // TODO: create extensive testing project (will be tested using Postman, or a similar tool)

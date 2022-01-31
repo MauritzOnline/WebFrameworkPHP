@@ -8,6 +8,7 @@
  */
 
 // TODO: create extensive testing project (will be tested using Postman, or a similar tool)
+// TODO: utilize "_send_error" more
 
 class WebFramework {
   private string $_routes_folder;
@@ -16,11 +17,13 @@ class WebFramework {
   private bool $_route_has_params = false;
   private $_routes = array();
   private $_found404 = null;
+  private $_error_handler;
 
   protected string $root_uri;
   protected string $found_route_uri;
-
   protected $request;
+
+  public $debug_mode = false; // will print additional information when errors occur
 
   public function __construct($routes_folder = "routes") {
     $this->_routes_folder = $routes_folder;
@@ -45,6 +48,59 @@ class WebFramework {
       $this->request->uri = rtrim($this->request->uri, "/");
     }
     $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
+
+    // Default error handler
+    $this->_error_handler = function($error_code, $error_message) {
+      $this->send($error_message . " (E" . $error_code . ")!", 500);
+    };
+
+    /* register_shutdown_function(function() {
+      die("(die) shutdown");
+    }); */
+    set_error_handler(function($level, $message, $file, $line) {
+      $error_message = "";
+      if($this->debug_mode) {
+        $error_type = "Unknown";
+        switch ($level) {
+          case E_USER_ERROR:
+            $error_type = "Error";
+            break;
+      
+          case E_USER_WARNING:
+            $error_type = "Warning";
+            break;
+      
+          case E_USER_NOTICE:
+            $error_type = "Notice";
+            break;
+          }
+
+        $error_message = join(" ", array(
+          "Type: " . $error_type . ";",
+          "Message: {" . $message . "};",
+          "File: {" . $file . "};",
+          "Line: {" . $line . "};"
+        ));
+        $this->_send_error(10000, $error_message);
+      } else {
+        $this->_send_error(10000);
+      }
+    });
+
+    set_exception_handler(function($e) {
+      $error_message = "";
+      if($this->debug_mode) {
+        $error_message = join(" ", array(
+          "Type: " . get_class($e) . ";",
+          "Message: {" . $e->getMessage() . "};",
+          "File: {" . $e->getFile() . "};",
+          "Line: {" . $e->getLine() . "};"
+        ));
+        $this->_send_error(10001, $error_message);
+      } else {
+        $this->_send_error(10001);
+      }
+    });
   }
 
   // Used for debugging
@@ -114,7 +170,13 @@ class WebFramework {
       "status" => $data->status
     ), (array) $data);
 
-    $this->send(json_encode($final_data), $final_data->status, "application/json");
+    $encoded_data = json_encode($final_data);
+
+    if($encoded_data !== false) {
+      $this->send($encoded_data, $final_data->status, "application/json");
+    } else {
+      $this->_send_error(20000);
+    }
   }
 
   /* Activates the following HelmetJS defaults [must be called before start()]:
@@ -160,7 +222,7 @@ class WebFramework {
       $request_headers = array_combine(array_map("ucwords", array_keys($request_headers)), array_values($request_headers));
 
       if(isset($request_headers["Authorization"])) {
-          $header = trim($request_headers["Authorization"]);
+        $header = trim($request_headers["Authorization"]);
       }
     }
 
@@ -173,6 +235,10 @@ class WebFramework {
         }
       }
     }
+  }
+
+  public function set_custom_error_handler(callable $func) {
+    $this->_error_handler = $func;
   }
 
   // Start the web framework (matching route, parsing data, etc...)
@@ -291,6 +357,12 @@ class WebFramework {
   // Sends default 404 response (should not be used directly)
   private function _not_found() {
     $this->send("Not found!", 404);
+  }
+  
+  // Calls the defined error handler function
+  private function _send_error(int $error_code = 11111, string $error_message = "Internal server error") {
+    call_user_func($this->_error_handler, $error_code, $error_message);
+    error_log("An internal error occurred in WebFrameworkPHP (E" . $error_code . ")!");
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)

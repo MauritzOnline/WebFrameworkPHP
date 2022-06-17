@@ -120,13 +120,13 @@ class WebFramework {
   }
 
   // Redirect to provided URL
-  public function redirect(string $redirect_uri, $permanent = false) {
+  public function redirect(string $redirect_uri, bool $permanent = false) {
     header("Location: " . $redirect_uri, true, $permanent ? 301 : 302);
     exit();
   }
 
   // Redirect to provided local route
-  public function local_redirect(string $route_str, $permanent = false) {
+  public function local_redirect(string $route_str, bool $permanent = false) {
     $clean_route_str = ltrim(ltrim(rtrim($route_str, "/"), "."), "/");
     $this->redirect($this->to_local_uri($clean_route_str), $permanent);
   }

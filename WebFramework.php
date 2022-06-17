@@ -119,6 +119,18 @@ class WebFramework {
     ];
   }
 
+  // Redirect to provided URL
+  public function redirect(string $redirect_uri, $permanent = false) {
+    header("Location: " . $redirect_uri, true, $permanent ? 301 : 302);
+    exit();
+  }
+
+  // Redirect to provided local route
+  public function local_redirect(string $route_str, $permanent = false) {
+    $clean_route_str = ltrim(ltrim(rtrim($route_str, "/"), "."), "/");
+    $this->redirect($this->root_uri . "/" . $clean_route_str, $permanent);
+  }
+
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
   public function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET") {
     if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {

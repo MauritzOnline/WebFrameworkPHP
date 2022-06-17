@@ -336,7 +336,7 @@ class WebFramework {
           foreach ($exploded_request_uri as $key => $value) {
             if($exploded_route_uri[$key] !== $value) {
               if(str_starts_with($exploded_route_uri[$key], ":")) {
-                $this->request->params[ltrim($exploded_route_uri[$key], ":")] = $value;
+                $this->request->params[ltrim($exploded_route_uri[$key], ":")] = urldecode($value);
               }
             }
           }

@@ -136,6 +136,11 @@ class WebFramework {
     return $this->root_uri . "/" . ltrim($path, "/");
   }
 
+  // Returns a path prefixed with the HTTP host and root URI
+  public function to_public_uri(string $path, bool $always_https = false) {
+    return ($always_https === true ? "https" : $_SERVER["REQUEST_SCHEME"]) . "://" . $_SERVER["HTTP_HOST"] . "/" . ltrim($this->to_local_uri($path), "/");
+  }
+
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
   public function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET") {
     if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {

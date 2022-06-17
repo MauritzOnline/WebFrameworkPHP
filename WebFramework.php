@@ -128,7 +128,7 @@ class WebFramework {
   // Redirect to provided local route
   public function local_redirect(string $route_str, $permanent = false) {
     $clean_route_str = ltrim(ltrim(rtrim($route_str, "/"), "."), "/");
-    $this->redirect($this->root_uri . "/" . $clean_route_str, $permanent);
+    $this->redirect($this->to_local_uri($clean_route_str), $permanent);
   }
 
   // Returns a path prefixed with the root URI

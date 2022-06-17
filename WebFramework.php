@@ -131,6 +131,11 @@ class WebFramework {
     $this->redirect($this->root_uri . "/" . $clean_route_str, $permanent);
   }
 
+  // Returns a path prefixed with the root URI
+  public function to_local_uri(string $path) {
+    return $this->root_uri . "/" . ltrim($path, "/");
+  }
+
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
   public function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET") {
     if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {

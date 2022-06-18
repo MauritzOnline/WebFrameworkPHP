@@ -138,7 +138,21 @@ class WebFramework {
 
   // Returns a path prefixed with the HTTP host and root URI
   public function to_public_uri(string $path, bool $always_https = false) {
-    return ($always_https === true ? "https" : $_SERVER["REQUEST_SCHEME"]) . "://" . $_SERVER["HTTP_HOST"] . "/" . ltrim($this->to_local_uri($path), "/");
+    $server_port = (isset($_SERVER["SERVER_PORT"]) ? $_SERVER["SERVER_PORT"] : "80");
+    $http_host = $_SERVER["SERVER_NAME"];
+
+    if($server_port !== "80" && $server_port !== "443") {
+      if(!str_ends_with($http_host, ":" . $server_port)) {
+        $http_host .= ":" . $server_port;
+      }
+    }
+
+    return ($always_https === true ? "https" : $_SERVER["REQUEST_SCHEME"]) . "://" . $http_host . "/" . ltrim($this->to_local_uri($path), "/");
+  }
+
+  // Returns the current request URI prefixed with the HTTP host and root URI
+  public function get_public_request_uri(bool $always_https = false) {
+    return $this->to_public_uri($this->request->uri, $always_https);
   }
 
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered

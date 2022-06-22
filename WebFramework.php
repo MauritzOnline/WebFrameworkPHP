@@ -14,34 +14,34 @@ class WebFramework {
   private string $_routes_folder;
   private string $_script_file;
   private string $_full_request_uri;
+  private string $_root_uri;
+  private string $_found_route_uri;
   private bool $_route_has_params = false;
   private $_routes = array();
   private $_found404 = null;
   private $_error_handler;
 
-  protected string $root_uri;
-  protected string $found_route_uri;
-  protected $request;
-
-  public $debug_mode = false; // will print additional information when errors occur
+  public $request; // current request data
+  public $debug_mode = false; // true = will print additional information when errors occur
+  public $use_error_log = true; // true = will by default send detailed errors to error_log()
 
   public function __construct($routes_folder = "routes", $provide_error_handler = true) {
     $this->_routes_folder = $routes_folder;
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
-    $this->root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
+    $this->_root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
     $this->_full_request_uri = $_SERVER["REQUEST_URI"];
 
     $this->request = (object) array(
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
-      "uri" => rtrim($this->_str_replace_once($this->root_uri, "", $this->_full_request_uri), "/"),
+      "uri" => rtrim($this->_str_replace_once($this->_root_uri, "", $this->_full_request_uri), "/"),
       "token" => null, // Only gets parsed if the auth() method is called before start()
       "query" => array(),
       "params" => array(),
       "body" => array(),
     );
 
-    $this->found_route_uri = "";
+    $this->_found_route_uri = "";
 
     if(isset($_GET) && !empty($_GET)) {
       $this->request->uri = explode("?", $this->request->uri)[0];
@@ -116,9 +116,9 @@ class WebFramework {
   public function get_debug_info() {
     return [
       "script_file" => $this->_script_file,
-      "root_uri" => $this->root_uri,
+      "root_uri" => $this->_root_uri,
       "full_request_uri" => $this->_full_request_uri,
-      "found_route_uri" => $this->found_route_uri,
+      "found_route_uri" => $this->_found_route_uri,
       "request" => $this->request,
     ];
   }
@@ -390,7 +390,7 @@ class WebFramework {
         header("Content-Type: text/html");
       }
 
-      $this->found_route_uri = $route->uri;
+      $this->_found_route_uri = $route->uri;
       call_user_func($route->callback);
 
       if($route->is_html) {

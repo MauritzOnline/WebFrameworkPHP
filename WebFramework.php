@@ -60,14 +60,18 @@ class WebFramework {
       }); */
 
       set_exception_handler(function($e) {
-        $error_message = "";
+        $error_message = join(" ", array(
+          "Type: " . get_class($e) . ";",
+          "Message: {" . $e->getMessage() . "};",
+          "File: {" . $e->getFile() . "};",
+          "Line: {" . $e->getLine() . "};"
+        ));
+
+        if($this->use_error_log === true) {
+          error_log("WebFrameworkPHP ERROR >> " . $error_message);
+        }
+
         if($this->debug_mode) {
-          $error_message = join(" ", array(
-            "Type: " . get_class($e) . ";",
-            "Message: {" . $e->getMessage() . "};",
-            "File: {" . $e->getFile() . "};",
-            "Line: {" . $e->getLine() . "};"
-          ));
           $this->_send_error(10000, $error_message);
         } else {
           $this->_send_error(10000);

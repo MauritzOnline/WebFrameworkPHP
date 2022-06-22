@@ -137,11 +137,16 @@ class WebFramework {
 
   // Returns a path prefixed with the root URI
   public function to_local_uri(string $path) {
-    return $this->root_uri . "/" . ltrim($path, "/");
+    return $this->_root_uri . "/" . ltrim($path, "/");
   }
 
   // Returns a path prefixed with the HTTP host and root URI
   public function to_public_uri(string $path, bool $always_https = false) {
+    return $this->get_http_host($always_https) . "/" . ltrim($this->to_local_uri($path), "/");
+  }
+
+  // Returns the servers HTTP host with port number appended (if port isn't 80 nor 443) and prefixes http(s)
+  public function get_http_host(bool $always_https = false) {
     $server_port = (isset($_SERVER["SERVER_PORT"]) ? $_SERVER["SERVER_PORT"] : "80");
     $http_host = $_SERVER["SERVER_NAME"];
 
@@ -151,7 +156,7 @@ class WebFramework {
       }
     }
 
-    return ($always_https === true ? "https" : $_SERVER["REQUEST_SCHEME"]) . "://" . $http_host . "/" . ltrim($this->to_local_uri($path), "/");
+    return ($always_https === true ? "https" : $_SERVER["REQUEST_SCHEME"]) . "://" . $http_host;
   }
 
   // Returns the current request URI prefixed with the HTTP host and root URI

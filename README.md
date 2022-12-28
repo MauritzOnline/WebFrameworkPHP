@@ -67,9 +67,9 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 
 # if forcing of https is wanted (excluding localhost)
-RewriteCond %{HTTP_HOST} !=localhost
 RewriteCond %{HTTPS} !=on
-RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
+RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$
+RewriteRule ^.*$ https://%{HTTP_HOST}%{REQUEST_URI} [R,L]
 ```
 
 **Option 2: `.htaccess` when running framework inside a folder _[`https://example.com/my_api/`]_**
@@ -82,9 +82,9 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 
 # if forcing of https is wanted (excluding localhost)
-RewriteCond %{HTTP_HOST} !=localhost
 RewriteCond %{HTTPS} !=on
-RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
+RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$
+RewriteRule ^.*$ https://%{HTTP_HOST}%{REQUEST_URI} [R,L]
 ```
 
 **Option 3: `nginx.conf` when running framework at domain root _[`https://example.com/`]_**

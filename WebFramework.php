@@ -7,7 +7,7 @@
  * @version     0.0.6
  */
 
-// TODO: create extensive testing project (will be tested using Postman, or a similar tool)
+// TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
 
 class WebFramework {
@@ -16,9 +16,9 @@ class WebFramework {
   private string $_full_request_uri;
   private string $_root_uri;
   private string $_found_route_uri;
-  private bool $_route_has_params = false;
   private $_routes = array();
   private $_found404 = null;
+  private bool $_custom404Loaded = false;
   private $_error_handler;
 
   public $request; // current request data
@@ -35,7 +35,7 @@ class WebFramework {
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
       "uri" => rtrim($this->_str_replace_once($this->_root_uri, "", $this->_full_request_uri), "/"),
-      "token" => null, // Only gets parsed if the auth() method is called before start()
+      "token" => null, // Only gets parsed if the parse_auth() method is called before start()
       "query" => array(),
       "params" => array(),
       "body" => array(),
@@ -294,56 +294,60 @@ class WebFramework {
   // Start the web framework (matching route, parsing data, etc...)
   public function start() {
     if(!empty($this->_routes_folder)) $this->_load_routes();
-    $this->_route_has_params = false;
     $this->_found404 = null;
+    $found_route = null;
 
-    // Find matching routes for current URI, TODO: optimize
-    $matching_routes = array_filter($this->_routes, function($route) {
+    // Find matching route for current URI and parse URI params. Starts from the end of the array since we want to load in the last loaded route that matches and ignore any other matching routes and have been overwritten by the later loaded ones
+    for($i = count($this->_routes) - 1; $i >= 0; $i--) {
+      $route = $this->_routes[$i];
+      
       if($route->method === $this->request->method || $route->method === "ALL") {
-        if($route->uri === ":404") {
-          $this->_found404 = $route;
+        if($this->_custom404Loaded === true && $route->uri === ":404" && $this->_found404 === null) {
+          // Make sure the found 404 route has a callback
+          if(property_exists($route, "callback")) {
+            $this->_found404 = $route;
+          }
         } else {
-          $exploded_route_uri = explode("/", $route->uri);
-          $exploded_request_uri = explode("/", $this->request->uri);
-          $uri_matches = true;
-          
-          if(count($exploded_route_uri) === count($exploded_request_uri)) {
-            foreach ($exploded_request_uri as $key => $value) {
-              if($exploded_route_uri[$key] !== $value) {
-                if(!str_starts_with($exploded_route_uri[$key], ":")) {
-                  $uri_matches = false;
-                } else {
-                  $this->_route_has_params = true;
+          if($found_route === null) {
+            array_splice($this->request->params, 0); // reset any already parsed params
+            $route_uri_sections = explode("/", $route->uri);
+            $request_uri_sections = explode("/", $this->request->uri);
+            $uri_matches = true;
+            
+            // Check if the request URI and the route URI has the same amount of sections
+            if(count($route_uri_sections) === count($request_uri_sections)) {
+              foreach ($request_uri_sections as $key => $value) {
+                // Check if the current request URI section matches the current route URI section
+                if($route_uri_sections[$key] !== $value) {
+                  // Check if current route URI section is an URI param, if it is ignore the URI mismatch
+                  if(str_starts_with($route_uri_sections[$key], ":")) {
+                    // Parse the URI param
+                    $this->request->params[ltrim($route_uri_sections[$key], ":")] = urldecode($value);
+                  } else {
+                    $uri_matches = false;
+                  }
                 }
               }
+            } else {
+              // The URI sections didn't match, so this is not the correct route for the request URI
+              $uri_matches = false;
             }
-          } else {
-            $uri_matches = false;
+
+            // Check if the request URI found a matching route that has a callback function attached to it
+            if($uri_matches === true && property_exists($route, "callback")) {
+              $found_route = $route;
+
+              // Check if a custom 404 has been found, if it has then it's safe to exit the loop early, since everything has now been found
+              if($this->_found404 !== null || $this->_custom404Loaded === false) {
+                break;
+              }
+            }
           }
-
-          return $uri_matches;
         }
-      } else {
-        return false;
-      }
-    });
-
-    $route_exists = false;
-    $arr_key = 0;
-
-    // Check if at least one route was found with a callback
-    if(count($matching_routes) > 0) {
-      $arr_key = array_key_last($matching_routes);
-      if(property_exists($matching_routes[$arr_key], "callback")) {
-        $route_exists = true;
       }
     }
 
-    if($this->_found404 !== null && !property_exists($this->_found404, "callback")) {
-      $this->_found404 = null;
-    }
-
-    if($route_exists) {
+    if($found_route !== null) {
       $this->request->query = (isset($_GET) && !empty($_GET) ? $_GET : array());
 
       // Handle "form-data" & "x-www-form-urlencoded" & parse raw[application/json] body (skips is HTTP method is "GET")
@@ -360,24 +364,8 @@ class WebFramework {
         }
       }
 
-      // Parse URI params, TODO: try to get this included in the URI matcher?
-      if($this->_route_has_params) {
-        $exploded_route_uri = explode("/", $matching_routes[$arr_key]->uri);
-        $exploded_request_uri = explode("/", $this->request->uri);
-        
-        if(count($exploded_route_uri) === count($exploded_request_uri)) {
-          foreach ($exploded_request_uri as $key => $value) {
-            if($exploded_route_uri[$key] !== $value) {
-              if(str_starts_with($exploded_route_uri[$key], ":")) {
-                $this->request->params[ltrim($exploded_route_uri[$key], ":")] = urldecode($value);
-              }
-            }
-          }
-        }
-      }
-
       // Run found route's callback
-      $this->_run_route($matching_routes[$arr_key]);
+      $this->_run_route($found_route);
     } else {
       if($this->_found404 !== null) {
         $this->_run_route($this->_found404);
@@ -418,6 +406,11 @@ class WebFramework {
   // Adds route (should not be used directly, use get(), post(), etc...)
   private function _add_route(string $method, string $route_str, callable $route_callback, bool $route_is_html = false, int $html_status_code = 200) {
     $clean_route_str = trim(explode("?", $route_str)[0]);
+
+    if(str_starts_with($clean_route_str, ":404")) {
+      $this->_custom404Loaded = true;
+    }
+
     array_push($this->_routes, (object) [
       "method" => $method,
       "uri" => $clean_route_str === "/" ? $clean_route_str : rtrim($clean_route_str, "/"),

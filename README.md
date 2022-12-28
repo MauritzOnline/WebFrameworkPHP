@@ -307,7 +307,7 @@ $this->request = (object) array(
   "method" => $_SERVER["REQUEST_METHOD"], // HTTP method of the request
   "content_type" => $_SERVER["CONTENT_TYPE"], // Content-Type of the request
   "uri" => "...", // the current URI
-  "token" => "...", // the parsed bearer token of the request (only gets parsed if the auth() method is called before start()) [will be null if not found]
+  "token" => "...", // the parsed bearer token of the request (only gets parsed if the parse_auth() method is called before start()) [will be null if not found]
   "query" => array(...), // parsed URI queries (?hello=world&abc=123)
   "params" => array(...), // parsed URI params (/:hello/:abc)
   "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
@@ -325,7 +325,7 @@ curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
 
 ```php
 $this->post("/note/:id", function() {
-  $this->request->token; // "my_secret_token" (can be null, either if Bearer token parsing wasn't enabled using auth() or if a valid HTTP header couldn't be found in the request)
+  $this->request->token; // "my_secret_token" (can be null, either if Bearer token parsing wasn't enabled using parse_auth() or if a valid HTTP header couldn't be found in the request)
   $this->request->params["id"]; // "12345678" (required)
   $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
   $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)
@@ -338,7 +338,7 @@ $this->post("/note/:id", function() {
 
 ## Handling Bearer tokens
 
-You can use the provided `auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
+You can use the provided `parse_auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
 
 **Example:**
 
@@ -348,7 +348,7 @@ You can use the provided `auth()` method to parse for a Bearer token. If a valid
 require_once("./classes/WebFramework.php");
 
 $webFramework = new WebFramework();
-$webFramework->auth(); // activate parsing of Bearer token
+$webFramework->parse_auth(); // activate parsing of Bearer token
 $webFramework->start();
 
 ?>

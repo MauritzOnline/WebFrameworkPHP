@@ -46,7 +46,7 @@ def test_delete_404():
     print("✓ test_delete_404 cleared")
 
 
-def test_uri_params(include_ending_slash, include_url_query, include_second_url_param, run_html_version):
+def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
     # Set the base URL
     base_url = f'{API_URL}/uri_params'
 
@@ -120,7 +120,7 @@ def test_uri_params(include_ending_slash, include_url_query, include_second_url_
         f"✓ test_uri_params(include_ending_slash: {include_ending_slash}, include_url_query: {include_url_query}, include_second_url_param: {include_second_url_param}, run_html_version: {run_html_version}) cleared")
 
 
-def test_auth_token(mode):
+def test_auth_token(mode: int):
     assert mode in [-1, 0,
                     1], 'Invalid mode passed to "test_auth_token" function (valid ones: -1, 0, 1)!'
     headers = {}
@@ -154,7 +154,7 @@ def test_auth_token(mode):
     print(f"✓ test_auth_token(mode: {mode}) cleared")
 
 
-def test_post_data(data_type):
+def test_post_data(data_type: int):
     assert data_type in [
         0, 1, 2], 'Invalid "data_type" passed to "test_post_data" function (valid ones: 0, 1, 2)!'
 
@@ -196,7 +196,7 @@ def test_post_data(data_type):
     print(f"✓ test_post_data(data_type: {data_type}) cleared")
 
 
-def test_file_upload(stream):
+def test_file_upload(stream: bool):
     file_contents = "INVALID"
 
     with open(FILE_TO_UPLOAD, "r") as file:
@@ -224,7 +224,7 @@ def test_file_upload(stream):
     print(f"✓ test_file_upload(stream: {stream}) cleared")
 
 
-def test_file_download(stream):
+def test_file_download(stream: bool):
     base_url = f'{API_URL}/download_file'
 
     if stream == True:

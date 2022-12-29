@@ -301,6 +301,8 @@ $this->send_json(array(
 
 > File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
 
+> `send_file()` assumes that the file exists at the provided path. As such please ensure that the file exists before using `send_file()`.
+
 ```php
 function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
 ```
@@ -308,9 +310,13 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 **Examples:**
 
 ```php
-$this->send_file("hello_world.txt");
+if(file_exists("hello_world.txt")) {
+  $this->send_file("hello_world.txt");
+}
 
-$this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+if(file_exists("hello_world.txt")) {
+  $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+}
 ```
 
 ---

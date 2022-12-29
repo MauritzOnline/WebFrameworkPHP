@@ -1,7 +1,7 @@
 <?php
 
 $this->get("/uri_params/json/:param1", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "param1" => $this->request->params["param1"],
     "query" => $this->request->query
@@ -9,7 +9,7 @@ $this->get("/uri_params/json/:param1", function() {
 });
 
 $this->get("/uri_params/json/:param1/:param2", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "param1" => $this->request->params["param1"],
     "param2" => $this->request->params["param2"],

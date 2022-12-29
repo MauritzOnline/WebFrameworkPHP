@@ -17,11 +17,15 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Sending responses](#sending-responses)
   - [send()](#send)
   - [send_json()](#send_json)
+  - [send_json_body()](#send_json_body)
   - [send_file()](#send_file)
 - [Request data](#request-data)
 - [Handling Bearer tokens](#handling-bearer-tokens)
 - [HTML rendering](#html-rendering)
 - [Custom 404 response](#custom-404-response)
+- [Configuration flags](#configuration-flags)
+  - [Debug mode](#debug-mode)
+  - [Include status code in `send_json` and `send_json_body` output](#include-status-code-in-send_json-and-send_json_body-output)
 - [Custom error handler](#custom-error-handler)
 - [Error codes](#error-codes)
 - [Helmet](#helmet)
@@ -266,10 +270,10 @@ $this->send(json_encode(array(...)), 200, "application/json"); // 200 OK
 
 ### send_json()
 
-> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`.
+> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by setting `$status_code`. `$data` can either be an associative array or an object. If `status` is omitted then it will default to `200`. HTTP status code must be a number _(100-599)_.
 
 ```php
-function send_json(object|array $data, bool $include_status_code = true, int $status_code = 0)
+function send_json(object|array $data, int $status_code = 200, bool $include_status_code = true)
 ```
 
 **Examples:**
@@ -280,16 +284,46 @@ $this->send_json(array(
 )); // 200 OK
 
 $this->send_json(array(
+  "hello" => "world!",
+), 200); // 200 OK
+
+$this->send_json(array(
+  "hello" => "world!",
+), 400); // 400 Bad Request
+
+$this->send_json(array(
+  "hello" => "world!",
+), 500); // 500 Internal Error
+```
+
+---
+
+### send_json_body()
+
+> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`. HTTP status code must be a number _(100-599)_.
+
+```php
+function send_json_body(object|array $data, bool $include_status_code = true)
+```
+
+**Examples:**
+
+```php
+$this->send_json_body(array(
+  "hello" => "world!",
+)); // 200 OK
+
+$this->send_json_body(array(
   "status" => 200,
   "hello" => "world!",
 )); // 200 OK
 
-$this->send_json(array(
+$this->send_json_body(array(
   "status" => 400,
   "hello" => "world!",
 )); // 400 Bad Request
 
-$this->send_json(array(
+$this->send_json_body(array(
   "status" => 500,
   "hello" => "world!",
 )); // 500 Internal Error
@@ -301,8 +335,6 @@ $this->send_json(array(
 
 > File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
 
-> `send_file()` assumes that the file exists at the provided path. As such please ensure that the file exists before using `send_file()`.
-
 ```php
 function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
 ```
@@ -310,10 +342,12 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 **Examples:**
 
 ```php
+// it's recommended to check if the file exists first, since it might otherwise error out
 if(file_exists("hello_world.txt")) {
   $this->send_file("hello_world.txt");
 }
 
+// it's recommended to check if the file exists first, since it might otherwise error out
 if(file_exists("hello_world.txt")) {
   $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 }
@@ -480,6 +514,18 @@ $this->post(":404", function() {
 
 ---
 
+## Configuration flags
+
+### Debug mode
+
+Activated using `$webFramework->debug_mode = true;`. Debug mode can be turned on to get more detailed error messages.
+
+### Include status code in `send_json` and `send_json_body` output
+
+Deactivated using `$webFramework->include_status_code_in_json = false;`. This disables it globally, it can always be turned on by passing the value to `send_json` or `send_json_body`.
+
+---
+
 ## Custom error handler
 
 You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
@@ -518,7 +564,10 @@ You can easily customize the default error handler that is provided. This error 
 
 - **E10000:** Fatal error caused by loaded routes or other custom code.
 - **E10001:** Error sent using `trigger_error`.
-- **E20000:** Error sent from `send_json`, caused by failed JSON encode.
+- **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
+- **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
+- **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
+- **E20100:** Error sent from `send_file`, caused by missing file at given `$file_path`.
 
 ---
 

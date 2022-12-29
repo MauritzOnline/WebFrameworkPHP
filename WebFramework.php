@@ -39,6 +39,7 @@ class WebFramework {
       "query" => array(),
       "params" => array(),
       "body" => array(),
+      "files" => array()
     );
 
     $this->_found_route_uri = "";
@@ -206,28 +207,79 @@ class WebFramework {
   }
 
   // Sends a JSON response to the client (with Content-Type: application/json)
-  public function send_json(object|array $data) {
+  // TODO: improve & add tests for this
+  public function send_json(object|array $data, bool $include_status_code = true, int $status_code = 0) {
     $data = (object) $data;
-    if(!isset($data->status) || !is_numeric($data->status)) {
-      $data->status = 200;
+    $has_status_code = isset($data->status);
+
+    // Check if provided status code in the data is a valid HTTP status code 100-599, otherwise ignore it and default to 200
+    if($has_status_code && $status_code === 0) {
+      $status_code = intval($data->status);
+      if($status_code < 100 || $status_code > 599) {
+        $status_code = 0;
+      }
     }
-    if(is_string($data->status)) {
-      $data->status = intval($data->status);
+
+    if($status_code === 0) {
+      $status_code = 200;
     }
 
     // Used to make sure status code is at the start of object
     $final_data = (object) array_merge(array(
-      "status" => $data->status
+      "status" => $status_code
     ), (array) $data);
+
+    // Remove added status code
+    if($include_status_code === false) {
+      unset($final_data->status);
+    }
 
     $encoded_data = json_encode($final_data);
 
     if($encoded_data !== false) {
-      $this->send($encoded_data, $final_data->status, "application/json");
+      $this->send($encoded_data, $status_code, "application/json");
     } else {
       $this->_send_error(20000);
     }
   }
+
+  // Send a file to the client ($content_type is required if "finfo" is not supported on the server)
+  public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
+    if(trim($download_file_name) === "" || $download_file_name === null) {
+      // Get the file name from the file path
+      $download_file_name = basename($file_path);
+    }
+
+    if(trim($content_type) === "" || $content_type === null) {
+      // Create a new file info object
+      $finfo = new finfo(FILEINFO_MIME_TYPE);
+      // Get the MIME type of the file
+      $mime_type = $finfo->file($file_path);
+      // Set Content-Type of file to send (defaults to plain text if finfo fails)
+      $content_type = ($mime_type !== false ? $mime_type : "text/plain");
+    }
+
+    // Set the content length (filesize)
+    $content_length = filesize($file_path);
+
+    // Set the start and end bytes for the range
+    $start_byte = 0;
+    $end_byte = $content_length - 1;
+
+    // Set the HTTP headers
+    http_response_code(200);
+    header("Content-Disposition: attachment; filename=\"$download_file_name\"");
+    header("Content-Type: $content_type");
+    header("Content-Length: $content_length");
+    if($stream === true) {
+      header("Content-Range: bytes $start_byte-$end_byte/$content_length");
+    }
+
+    // Send the file
+    readfile($file_path);
+    exit();
+  }
+
 
   /* Activates the following HelmetJS defaults [must be called before start()]:
       - contentSecurityPolicy
@@ -352,6 +404,10 @@ class WebFramework {
 
       // Handle "form-data" & "x-www-form-urlencoded" & parse raw[application/json] body (skips is HTTP method is "GET")
       if($this->request->method !== "GET") {
+        if(isset($_FILES) && !empty($_FILES)) {
+          $this->request->files = $_FILES;
+        }
+
         if(isset($_POST) && !empty($_POST)) {
           $this->request->body = $_POST;
         } else if($this->request->content_type === "application/json") {

@@ -17,6 +17,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Sending responses](#sending-responses)
   - [send()](#send)
   - [send_json()](#send_json)
+  - [send_file()](#send_file)
 - [Request data](#request-data)
 - [Handling Bearer tokens](#handling-bearer-tokens)
 - [HTML rendering](#html-rendering)
@@ -268,7 +269,7 @@ $this->send(json_encode(array(...)), 200, "application/json"); // 200 OK
 > JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`.
 
 ```php
-function send_json(object|array $data)
+function send_json(object|array $data, bool $include_status_code = true, int $status_code = 0)
 ```
 
 **Examples:**
@@ -292,6 +293,24 @@ $this->send_json(array(
   "status" => 500,
   "hello" => "world!",
 )); // 500 Internal Error
+```
+
+---
+
+### send_file()
+
+> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
+
+```php
+function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
+```
+
+**Examples:**
+
+```php
+$this->send_file("hello_world.txt");
+
+$this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 ```
 
 ---

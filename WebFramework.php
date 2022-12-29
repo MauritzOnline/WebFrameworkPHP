@@ -243,7 +243,7 @@ class WebFramework {
     }
   }
 
-  // Send a file to the client ($content_type is required if "finfo" is not supported on the server)
+  // Send a file to the client ($content_type is required if "finfo" is not supported on the server) [this assumes the file exists, please make sure it does]
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
     if(trim($download_file_name) === "" || $download_file_name === null) {
       // Get the file name from the file path
@@ -271,6 +271,7 @@ class WebFramework {
     header("Content-Disposition: attachment; filename=\"$download_file_name\"");
     header("Content-Type: $content_type");
     header("Content-Length: $content_length");
+
     if($stream === true) {
       header("Content-Range: bytes $start_byte-$end_byte/$content_length");
     }

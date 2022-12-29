@@ -12,26 +12,26 @@ $this->post("/upload_file", function() {
   if(empty($this->request->files)) {
     return $this->send_json(array(
       "error" => "No files could be found in request!"
-    ), false);
+    ));
   }
 
   if(count($this->request->files) > 1) {
     return $this->send_json(array(
       "error" => "Too many files in request, only 1 is expected!"
-    ), false);
+    ));
   }
 
   if(!isset($this->request->files["file1"])) {
     return $this->send_json(array(
       "error" => "Couldn't find the uploaded file under the property \"file1\"!"
-    ), false);
+    ));
   }
   
   $file = $this->request->files["file1"];
   if($file["error"] !== UPLOAD_ERR_OK) {
     return $this->send_json(array(
       "error" => "An error occurred with the upload!"
-    ), false);
+    ));
   }
 
   // Get the temporary file path
@@ -51,14 +51,14 @@ $this->post("/upload_file", function() {
     if($file_contents === false) {
       return $this->send_json(array(
         "error" => "Failed to read uploaded file!"
-      ), false);
+      ));
     }
 
-    return $this->send_json(array_merge($this->request->body, array("file1" => $file_contents)), false);
+    return $this->send_json(array_merge($this->request->body, array("file1" => $file_contents)));
   } else {
     return $this->send_json(array(
       "error" => "Failed to move uploaded file!"
-    ), false);
+    ));
   }
 });
 

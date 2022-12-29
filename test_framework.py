@@ -7,43 +7,37 @@ FILE_TO_UPLOAD = "test_webframeworkphp/test_files/to_upload.txt"
 FILE_TO_SAVE = "test_webframeworkphp/test_files/downloaded.txt"
 
 
-def test_get_404():
-    # Make a GET request to a non-existent endpoint
-    response = requests.get(f'{API_URL}/should_not_exist')
+def test_404(mode: int):
+    assert mode in [
+        0, 1, 2], 'Invalid mode passed to "test_404" function (valid ones: 0, 1, 2)!'
+
+    response = None
+    base_url = f'{API_URL}/should_not_exist'
+
+    match mode:
+        case 0:
+            response = requests.get(base_url)
+        case 1:
+            response = requests.post(base_url)
+        case 2:
+            response = requests.delete(base_url)
+
+    # Check that response has ben received
+    assert response != None, "Response not received!"
 
     # Check that the response status code is 404
     assert response.status_code == 404, "HTTP status code is not 404!"
 
     # Check that the response content contains the expected text
-    assert 'Hello <strong>HTML 404</strong> here!' in response.text, "Response did not contain the expected text"
+    match mode:
+        case 0:
+            assert 'Hello <strong>HTML 404</strong> here!' in response.text, "Response did not contain the expected text"
+        case 1:
+            assert response.text == '404 - not found (custom POST)!', "Response did not match the expected text"
+        case 2:
+            assert response.text == '404 - not found (custom ALL)!', "Response did not match the expected text"
 
-    print("✓ test_get_404 cleared")
-
-
-def test_post_404():
-    # Make a POST request to a non-existent endpoint
-    response = requests.post(f'{API_URL}/should_not_exist')
-
-    # Check that the response status code is 404
-    assert response.status_code == 404, "HTTP status code is not 404!"
-
-    # Check that the response content is an exact match for the expected text
-    assert response.text == '404 - not found (custom POST)!', "Response did not match the expected text"
-
-    print("✓ test_post_404 cleared")
-
-
-def test_delete_404():
-    # Make a DELETE request to a non-existent endpoint
-    response = requests.delete(f'{API_URL}/should_not_exist')
-
-    # Check that the response status code is 404
-    assert response.status_code == 404, "HTTP status code is not 404!"
-
-    # Check that the response content is an exact match for the expected text
-    assert response.text == '404 - not found (custom ALL)!', "Response did not match the expected text"
-
-    print("✓ test_delete_404 cleared")
+    print(f"✓ test_404(mode: {mode}) cleared")
 
 
 def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
@@ -261,14 +255,55 @@ def test_file_download(stream: bool):
     print(f"✓ test_file_download(stream: {stream}) cleared")
 
 
+def test_send_json(run_body_version: bool, include_status_code: bool, status_code: int):
+    # assert status_code >= 100, "Status code cannot be less than 100!"
+    # assert status_code < 600, "Status code cannot be greater than 599!"
+
+    url_queries = {
+        "run_body_version": run_body_version,
+        "include_status_code": include_status_code,
+        "status_code": status_code
+    }
+
+    data = {
+        "field1": "123",
+        "field2": "abc"
+    }
+
+    if run_body_version == True and include_status_code == True:
+        data["status"] = status_code
+
+    response = requests.post(f'{API_URL}/send_json',
+                             params=url_queries, data=data)
+
+    # Check that the response status code is "status_code"
+    assert response.status_code == status_code, "HTTP status code is not {} (is: {})!".format(
+        status_code, response.status_code)
+
+    """print(" ")
+    print(
+        f"[ ] test_send_json(run_body_version: {run_body_version}, include_status_code: {include_status_code}, status_code: {status_code}) running")
+    # print(response.json())
+    print(f"Response: \"{response.json()}\", Expected: \"{data}\"")"""
+
+    # Check that the response contains the expected data
+    if include_status_code == True:
+        data["status"] = status_code
+
+    assert response.json() == data, "Response does not contain the expected values!"
+
+    print(
+        f"✓ test_send_json(run_body_version: {run_body_version}, include_status_code: {include_status_code}, status_code: {status_code}) cleared")
+
+
 # Call all the functions
-test_get_404()
-test_post_404()
-test_delete_404()
+for i in range(0, 3):
+    test_404(i)
 
 
 # Define the list of parameter values
 param_values = [False, True]
+status_code_values = [200, 400, 404, 500]
 
 # Iterate over all combinations of parameter values
 for include_ending_slash in param_values:
@@ -289,5 +324,12 @@ test_file_upload(False)
 test_file_upload(True)
 test_file_download(False)
 test_file_download(True)
+
+# test_send_json(True, False, False, 200)
+
+for run_body_version in param_values:
+    for include_status_code in param_values:
+        for status_code in status_code_values:
+            test_send_json(run_body_version, include_status_code, status_code)
 
 print("✓ All tests cleared")

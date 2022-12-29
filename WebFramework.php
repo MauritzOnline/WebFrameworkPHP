@@ -22,8 +22,9 @@ class WebFramework {
   private $_error_handler;
 
   public $request; // current request data
-  public $debug_mode = false; // true = will print additional information when errors occur
-  public $use_error_log = true; // true = will by default send detailed errors to error_log()
+  public bool $debug_mode = false; // true = will print additional information when errors occur
+  public bool $include_status_code_in_json = true; // true = will add ["status"] to all JSON output sent using "send_json"
+  public bool $use_error_log = true; // true = will by default send detailed errors to error_log()
 
   public function __construct($routes_folder = "routes", $provide_error_handler = true) {
     $this->_routes_folder = $routes_folder;
@@ -200,38 +201,66 @@ class WebFramework {
 
   // Sends a response to the client
   public function send(string $data, int $status_code = 200, string $content_type = "text/plain") {
+    if($status_code < 100 || $status_code > 599) {
+      $this->_send_error(20001);
+    }
+
     http_response_code($status_code);
     header("Content-Type: " . trim($content_type));
     echo $data;
     exit();
   }
 
-  // Sends a JSON response to the client (with Content-Type: application/json)
-  // TODO: improve & add tests for this
-  public function send_json(object|array $data, bool $include_status_code = true, int $status_code = 0) {
+  // Sends a JSON response to the client, reads status code from $status_code (with Content-Type: application/json)
+  public function send_json(object|array $data, int $status_code = 200, bool|null $include_status_code = null) {
+    $data = (object) $data;
+    if($include_status_code === null) {
+      $include_status_code = $this->include_status_code_in_json;
+    }
+
+    $final_data = $data;
+    if($include_status_code === true) {
+      unset($final_data->status);
+      // Used to make sure status code is at the start of object
+      $final_data = (object) array_merge(array(
+        "status" => $status_code
+      ), (array) $final_data);
+    }
+
+    $encoded_data = json_encode($final_data);
+
+    if($encoded_data !== false) {
+      $this->send($encoded_data, $status_code, "application/json");
+    } else {
+      $this->_send_error(20000);
+    }
+  }
+
+  // Sends a JSON response to the client, reads status code from $data["status"] (with Content-Type: application/json)
+  public function send_json_body(object|array $data, bool|null $include_status_code = null) {
     $data = (object) $data;
     $has_status_code = isset($data->status);
+    $status_code = 200;
+
+    if($include_status_code === null) {
+      $include_status_code = $this->include_status_code_in_json;
+    }
 
     // Check if provided status code in the data is a valid HTTP status code 100-599, otherwise ignore it and default to 200
-    if($has_status_code && $status_code === 0) {
+    if($has_status_code) {
       $status_code = intval($data->status);
-      if($status_code < 100 || $status_code > 599) {
-        $status_code = 0;
+      if($status_code === 0) {
+        $this->_send_error(20002);
       }
     }
 
-    if($status_code === 0) {
-      $status_code = 200;
-    }
-
-    // Used to make sure status code is at the start of object
-    $final_data = (object) array_merge(array(
-      "status" => $status_code
-    ), (array) $data);
-
-    // Remove added status code
-    if($include_status_code === false) {
-      unset($final_data->status);
+    $final_data = $data;
+    unset($final_data->status);
+    if($include_status_code === true) {
+      // Used to make sure status code is at the start of object
+      $final_data = (object) array_merge(array(
+        "status" => $status_code
+      ), (array) $final_data);
     }
 
     $encoded_data = json_encode($final_data);
@@ -245,6 +274,10 @@ class WebFramework {
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server) [this assumes the file exists, please make sure it does]
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
+    if(!file_exists($file_path)) {
+      $this->_send_error(20100);
+    }
+
     if(trim($download_file_name) === "" || $download_file_name === null) {
       // Get the file name from the file path
       $download_file_name = basename($file_path);

@@ -330,6 +330,7 @@ $this->request = (object) array(
   "query" => array(...), // parsed URI queries (?hello=world&abc=123)
   "params" => array(...), // parsed URI params (/:hello/:abc)
   "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
+  "files" => array(...), // parsed files data (will not be parsed if HTTP method is "GET")
 );
 ```
 

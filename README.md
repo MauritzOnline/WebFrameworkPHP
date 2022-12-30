@@ -10,6 +10,11 @@ A small and simple web framework built using PHP. Handles routing and different 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Error codes](#error-codes)
+- [Configuration flags](#configuration-flags)
+  - [Debug mode](#debug-mode)
+  - [Include status code in JSON output](#include-status-code-in-json-output)
+- [Request data](#request-data)
 - [Route loading](#route-loading)
   - [Auto loading](#auto-loading)
   - [Manual loading](#manual-loading)
@@ -27,17 +32,12 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_json()](#send_json)
   - [send_json_body()](#send_json_body)
   - [send_file()](#send_file)
-- [Request data](#request-data)
-- [Handling Bearer tokens](#handling-bearer-tokens)
 - [HTML rendering](#html-rendering)
+- [Handling Bearer tokens](#handling-bearer-tokens)
 - [Custom 404 response](#custom-404-response)
-- [Configuration flags](#configuration-flags)
-  - [Debug mode](#debug-mode)
-  - [Include status code in JSON output](#include-status-code-in-json-output)
 - [Custom error handler](#custom-error-handler)
-- [Error codes](#error-codes)
-- [Helmet](#helmet)
 - [Custom headers](#custom-headers)
+- [Helmet](#helmet)
 - [CORS](#cors)
 
 <!-- END ToC -->
@@ -121,6 +121,72 @@ server {
     # ... other config items ...
 
     rewrite ^/my_api/(.*)$ /my_api/index.php last;
+}
+```
+
+---
+
+## Error codes
+
+You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
+
+- **E10000:** Fatal error caused by loaded routes or other custom code.
+- **E10001:** Error sent using `trigger_error`.
+- **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
+- **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
+- **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
+- **E20100:** Error sent from `send_file`, caused by missing or unreadable file at the given `$file_path`.
+
+---
+
+## Configuration flags
+
+### Debug mode
+
+Activated using `$webFramework->debug_mode = true;`. Debug mode can be turned on to get more detailed error messages.
+
+### Include status code in JSON output
+
+Deactivated using `$webFramework->include_status_code_in_json = false;`. This disables it globally, it can always be turned on by passing the value to `send_json` or `send_json_body`.
+
+---
+
+## Request data
+
+> `request->uri` will always exclude the current directory, if you are running the framework from the domain root then this will not affect you. However if you are running from inside a folder, the URI will never include the folder, e.g. `/my_api/hello` becomes `/hello`.
+
+**Structure of request data:**
+
+```php
+$this->request = (object) array(
+  "method" => $_SERVER["REQUEST_METHOD"], // HTTP method of the request
+  "content_type" => $_SERVER["CONTENT_TYPE"], // Content-Type of the request
+  "uri" => "...", // the current URI
+  "token" => "...", // the parsed bearer token of the request (only gets parsed if the parse_auth() method is called before start()) [will be null if not found]
+  "query" => array(...), // parsed URI queries (?hello=world&abc=123)
+  "params" => array(...), // parsed URI params (/:hello/:abc)
+  "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
+  "files" => array(...), // parsed files data (will not be parsed if HTTP method is "GET")
+);
+```
+
+**Examples:**
+
+```bash
+curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
+     -H 'Authorization: Bearer my_secret_token'\
+     -H "Content-type: application/json"\
+     -d '{ "title": "My sticky note", "contents": "Remember Sunday" }'
+```
+
+```php
+$this->post("/note/:id", function() {
+  $this->request->token; // "my_secret_token" (can be null, either if Bearer token parsing wasn't enabled using parse_auth() or if a valid HTTP header couldn't be found in the request)
+  $this->request->params["id"]; // "12345678" (required)
+  $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
+  $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)
+  $this->request->body["contents"]; // "Remember Sunday" (can be missing, using isset() before accessing is recommended)
+  $this->send("Note added");
 }
 ```
 
@@ -480,67 +546,6 @@ if(is_readable("hello_world.txt")) {
 
 ---
 
-## Request data
-
-> `request->uri` will always exclude the current directory, if you are running the framework from the domain root then this will not affect you. However if you are running from inside a folder, the URI will never include the folder, e.g. `/my_api/hello` becomes `/hello`.
-
-**Structure of request data:**
-
-```php
-$this->request = (object) array(
-  "method" => $_SERVER["REQUEST_METHOD"], // HTTP method of the request
-  "content_type" => $_SERVER["CONTENT_TYPE"], // Content-Type of the request
-  "uri" => "...", // the current URI
-  "token" => "...", // the parsed bearer token of the request (only gets parsed if the parse_auth() method is called before start()) [will be null if not found]
-  "query" => array(...), // parsed URI queries (?hello=world&abc=123)
-  "params" => array(...), // parsed URI params (/:hello/:abc)
-  "body" => array(...), // parsed post data (form-data, x-www-form-urlencoded, raw[application/json]) (will not be parsed if HTTP method is "GET")
-  "files" => array(...), // parsed files data (will not be parsed if HTTP method is "GET")
-);
-```
-
-**Examples:**
-
-```bash
-curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
-     -H 'Authorization: Bearer my_secret_token'\
-     -H "Content-type: application/json"\
-     -d '{ "title": "My sticky note", "contents": "Remember Sunday" }'
-```
-
-```php
-$this->post("/note/:id", function() {
-  $this->request->token; // "my_secret_token" (can be null, either if Bearer token parsing wasn't enabled using parse_auth() or if a valid HTTP header couldn't be found in the request)
-  $this->request->params["id"]; // "12345678" (required)
-  $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
-  $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)
-  $this->request->body["contents"]; // "Remember Sunday" (can be missing, using isset() before accessing is recommended)
-  $this->send("Note added");
-}
-```
-
----
-
-## Handling Bearer tokens
-
-You can use the provided `parse_auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
-
-**Example:**
-
-```php
-<?php
-
-require_once("./classes/WebFramework.php");
-
-$webFramework = new WebFramework();
-$webFramework->parse_auth(); // activate parsing of Bearer token
-$webFramework->start();
-
-?>
-```
-
----
-
 ## HTML rendering
 
 > HTML can also be rendered at specified routes using the `render_html()` method.
@@ -602,6 +607,26 @@ $this->render_html("/document/:id", function() {
 
 ---
 
+## Handling Bearer tokens
+
+You can use the provided `parse_auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->parse_auth(); // activate parsing of Bearer token
+$webFramework->start();
+
+?>
+```
+
+---
+
 ## Custom 404 response
 
 You can easily customize the provided 404 response for any HTTP method by settings the route URI to: `:404`. Customization can be done on a per HTTP method way, or for all methods using `all()`.
@@ -639,18 +664,6 @@ $this->post(":404", function() {
 
 ---
 
-## Configuration flags
-
-### Debug mode
-
-Activated using `$webFramework->debug_mode = true;`. Debug mode can be turned on to get more detailed error messages.
-
-### Include status code in JSON output
-
-Deactivated using `$webFramework->include_status_code_in_json = false;`. This disables it globally, it can always be turned on by passing the value to `send_json` or `send_json_body`.
-
----
-
 ## Custom error handler
 
 You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
@@ -677,39 +690,6 @@ $webFramework->set_custom_error_handler(function(int $error_code, string $error_
     )
   ));
 });
-
-?>
-```
-
----
-
-## Error codes
-
-You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
-
-- **E10000:** Fatal error caused by loaded routes or other custom code.
-- **E10001:** Error sent using `trigger_error`.
-- **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
-- **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
-- **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
-- **E20100:** Error sent from `send_file`, caused by missing or unreadable file at the given `$file_path`.
-
----
-
-## Helmet
-
-> This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.
-
-**Example:**
-
-```php
-<?php
-
-require_once("./classes/WebFramework.php");
-
-$webFramework = new WebFramework();
-$webFramework->helmet(); // activate Helmet
-$webFramework->start();
 
 ?>
 ```
@@ -751,6 +731,26 @@ $this->get("/hello", function() {
     "message" => "Hello world!",
   ));
 });
+
+?>
+```
+
+---
+
+## Helmet
+
+> This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->helmet(); // activate Helmet
+$webFramework->start();
 
 ?>
 ```

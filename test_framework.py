@@ -7,6 +7,22 @@ FILE_TO_UPLOAD = "test_webframeworkphp/test_files/to_upload.txt"
 FILE_TO_SAVE = "test_webframeworkphp/test_files/downloaded.txt"
 
 
+class Colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def print_test_clear(func_str: str):
+    print(f"{Colors.OKGREEN}✓{Colors.ENDC} {func_str} cleared")
+
+
 def test_404(mode: int):
     assert mode in [
         0, 1, 2], 'Invalid mode passed to "test_404" function (valid ones: 0, 1, 2)!'
@@ -37,7 +53,7 @@ def test_404(mode: int):
         case 2:
             assert response.text == '404 - not found (custom ALL)!', "Response did not match the expected text"
 
-    print(f"✓ test_404(mode: {mode}) cleared")
+    print_test_clear(f"test_404(mode: {mode})")
 
 
 def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
@@ -110,8 +126,8 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
             assert data['query'] == [
             ], "URL query is not an empty array as expected!"
 
-    print(
-        f"✓ test_uri_params(include_ending_slash: {include_ending_slash}, include_url_query: {include_url_query}, include_second_url_param: {include_second_url_param}, run_html_version: {run_html_version}) cleared")
+    print_test_clear(
+        f"test_uri_params(include_ending_slash: {include_ending_slash}, include_url_query: {include_url_query}, include_second_url_param: {include_second_url_param}, run_html_version: {run_html_version})")
 
 
 def test_auth_token(mode: int):
@@ -145,7 +161,7 @@ def test_auth_token(mode: int):
         case 1:
             assert response.text == 'my_valid_secret_token', "Response did not match the expected text"
 
-    print(f"✓ test_auth_token(mode: {mode}) cleared")
+    print_test_clear(f"test_auth_token(mode: {mode})")
 
 
 def test_post_data(data_type: int):
@@ -187,7 +203,7 @@ def test_post_data(data_type: int):
     # Check that the response contains the expected data
     assert response.json() == data, "Response does not contain the expected values!"
 
-    print(f"✓ test_post_data(data_type: {data_type}) cleared")
+    print_test_clear(f"test_post_data(data_type: {data_type})")
 
 
 def test_file_upload(stream: bool):
@@ -215,7 +231,7 @@ def test_file_upload(stream: bool):
     # Check that the response contains the expected data
     assert response.json() == files_data, "Response does not contain the expected values!"
 
-    print(f"✓ test_file_upload(stream: {stream}) cleared")
+    print_test_clear(f"test_file_upload(stream: {stream})")
 
 
 def test_file_download(stream: bool):
@@ -252,7 +268,7 @@ def test_file_download(stream: bool):
 
     assert file_contents == "bye world!", "Downloaded file content does not match expected value!"
 
-    print(f"✓ test_file_download(stream: {stream}) cleared")
+    print_test_clear(f"test_file_download(stream: {stream})")
 
 
 def test_send_json(run_body_version: bool, include_status_code: bool, status_code: int):
@@ -292,8 +308,8 @@ def test_send_json(run_body_version: bool, include_status_code: bool, status_cod
 
     assert response.json() == data, "Response does not contain the expected values!"
 
-    print(
-        f"✓ test_send_json(run_body_version: {run_body_version}, include_status_code: {include_status_code}, status_code: {status_code}) cleared")
+    print_test_clear(
+        f"test_send_json(run_body_version: {run_body_version}, include_status_code: {include_status_code}, status_code: {status_code})")
 
 
 # Call all the functions
@@ -320,10 +336,9 @@ for i in range(-1, 2):
 for i in range(0, 3):
     test_post_data(i)
 
-test_file_upload(False)
-test_file_upload(True)
-test_file_download(False)
-test_file_download(True)
+for stream in param_values:
+    test_file_upload(stream)
+    test_file_download(stream)
 
 # test_send_json(True, False, False, 200)
 
@@ -332,4 +347,4 @@ for run_body_version in param_values:
         for status_code in status_code_values:
             test_send_json(run_body_version, include_status_code, status_code)
 
-print("✓ All tests cleared")
+print(f"{Colors.OKGREEN}✓ All tests cleared{Colors.ENDC}")

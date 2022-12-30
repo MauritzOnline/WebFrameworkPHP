@@ -14,6 +14,14 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [Auto loading](#auto-loading)
   - [Manual loading](#manual-loading)
 - [Routing](#routing)
+- [Redirection](#redirection)
+  - [redirect()](#redirect)
+  - [local_redirect()](#local_redirect)
+- [HTTP host and URI utilities](#http-host-and-uri-utilities)
+  - [to_local_uri()](#to_local_uri)
+  - [to_public_uri()](#to_public_uri)
+  - [get_http_host()](#get_http_host)
+  - [get_public_request_uri()](#get_public_request_uri)
 - [Sending responses](#sending-responses)
   - [send()](#send)
   - [send_json()](#send_json)
@@ -25,7 +33,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Custom 404 response](#custom-404-response)
 - [Configuration flags](#configuration-flags)
   - [Debug mode](#debug-mode)
-  - [Include status code in `send_json` and `send_json_body` output](#include-status-code-in-send_json-and-send_json_body-output)
+  - [Include status code in JSON output](#include-status-code-in-json-output)
 - [Custom error handler](#custom-error-handler)
 - [Error codes](#error-codes)
 - [Helmet](#helmet)
@@ -247,13 +255,130 @@ $this->post("/document", function() {
 
 ---
 
+## Redirection
+
+### redirect()
+
+> Redirection function, allows you to redirect the user to a different URL. The status code is set to 301 for permanent redirects and 302 for temporary redirects.
+
+```php
+function redirect(string $redirect_uri, bool $permanent = false)
+```
+
+**Examples:**
+
+```php
+$this->redirect("https://example.com");
+
+$this->redirect("https://example.com", true);
+```
+
+### local_redirect()
+
+> Redirection function, allows you to redirect the user to a local route. The status code is set to 301 for permanent redirects and 302 for temporary redirects. Local redirection cannot escape from the root URI. As such if the framework isn't running from the root of the domain then the redirection will always be prefixed with the folder it's running inside.
+
+```php
+function local_redirect(string $route_str, bool $permanent = false)
+```
+
+**Examples:**
+
+```php
+$this->local_redirect("/my/local/route"); // "https://example.com/my/local/route"
+
+// If the framework isn't running from the root of the domain then the folder will be included in the end result
+$this->local_redirect("/my/local/route"); // "https://example.com/my_api/my/local/route"
+```
+
+---
+
+## HTTP host and URI utilities
+
+### to_local_uri()
+
+> Path conversion function, returns a path prefixed with the root URI.
+
+```php
+function to_local_uri(string $path)
+```
+
+**Examples:**
+
+```php
+$this->to_local_uri("/my/local/route"); // "/my/local/route"
+
+$this->to_local_uri("my/local/route"); // "/my/local/route"
+
+
+// If the framework isn't running from the root of the domain then the folder will be included in the end result
+$this->to_local_uri("/my/local/route"); // "/my_api/my/local/route"
+
+$this->to_local_uri("my/local/route"); // "/my_api/my/local/route"
+```
+
+### to_public_uri()
+
+> Path conversion function, returns a path prefixed with the HTTP host and root URI.
+
+```php
+function to_public_uri(string $path, bool $always_https = false)
+```
+
+**Examples:**
+
+```php
+$this->to_public_uri("/my/local/route"); // "https://example.com/my/local/route"
+
+$this->to_public_uri("my/local/route"); // "https://example.com/my/local/route"
+
+
+// If the framework isn't running from the root of the domain then the folder will be included in the end result
+$this->to_public_uri("/my/local/route"); // "https://example.com/my_api/my/local/route"
+
+$this->to_public_uri("my/local/route"); // "https://example.com/my_api/my/local/route"
+```
+
+### get_http_host()
+
+> HTTP host function, returns the server's HTTP host with port number appended _(if the port is not 80 or 443)_ and prefixes http or https.
+
+```php
+function get_http_host(bool $always_https = false)
+```
+
+**Examples:**
+
+```php
+$this->get_http_host(); // "http://example.com" or "https://example.com" depending on the current request scheme
+
+$this->get_http_host(true); // always "https://example.com"
+```
+
+### get_public_request_uri()
+
+> Request URI function, returns the current request URI prefixed with the HTTP host and root URI
+
+```php
+function get_public_request_uri(bool $always_https = false)
+```
+
+**Examples:**
+
+```php
+$this->get_public_request_uri(); // "http://example.com/my/request/uri" or "https://example.com/my/request/uri" depending on the current request scheme
+
+$this->get_public_request_uri(true); // always "https://example.com/my/request/uri"
+```
+
+---
+
 ## Sending responses
 
-> Responses can either be sent using `send(...)` or `send_json(...)`. Responses exit PHP, so after they are sent no other code will be run.
+> Responses can either be sent using `send(...)`, `send_json(...)`, `send_json_body(...)` or `send_file(...)`. Responses exit PHP, so after they are sent no other code will be run.
 
 ### send()
 
-> Base response function, allows you to send any data you want with any Content-Type and status code.
+> Base response function, allows you to send any data you want with any Content-Type and status code. HTTP status code must be a number _(100-599)_.
 
 ```php
 function send(string $data, int $status_code = 200, string $content_type = "text/plain")
@@ -520,7 +645,7 @@ $this->post(":404", function() {
 
 Activated using `$webFramework->debug_mode = true;`. Debug mode can be turned on to get more detailed error messages.
 
-### Include status code in `send_json` and `send_json_body` output
+### Include status code in JSON output
 
 Deactivated using `$webFramework->include_status_code_in_json = false;`. This disables it globally, it can always be turned on by passing the value to `send_json` or `send_json_body`.
 

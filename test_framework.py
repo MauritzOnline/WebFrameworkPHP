@@ -1,10 +1,15 @@
 import os
+import re
 import requests
+from functools import partial
 
 # Set the global API URL
 API_URL = 'http://127.0.0.1:47813/WebFrameworkPHP/test_webframeworkphp'
 FILE_TO_UPLOAD = "test_webframeworkphp/test_files/to_upload.txt"
 FILE_TO_SAVE = "test_webframeworkphp/test_files/downloaded.txt"
+
+# Define the regex pattern to match the string representation of a function
+func_reg = re.compile(r"<function (\w+) at 0x[0-9a-f]+>", flags=re.IGNORECASE)
 
 
 class Colors:
@@ -19,8 +24,7 @@ class Colors:
     UNDERLINE = '\033[4m'
 
 
-def print_test_clear(func_str: str):
-    print(f"{Colors.OKGREEN}✓{Colors.ENDC} {func_str} cleared")
+tests_to_run: list[partial] = []
 
 
 def test_404(mode: int):
@@ -52,8 +56,6 @@ def test_404(mode: int):
             assert response.text == '404 - not found (custom POST)!', "Response did not match the expected text"
         case 2:
             assert response.text == '404 - not found (custom ALL)!', "Response did not match the expected text"
-
-    print_test_clear(f"test_404(mode: {mode})")
 
 
 def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
@@ -126,9 +128,6 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
             assert data['query'] == [
             ], "URL query is not an empty array as expected!"
 
-    print_test_clear(
-        f"test_uri_params(include_ending_slash: {include_ending_slash}, include_url_query: {include_url_query}, include_second_url_param: {include_second_url_param}, run_html_version: {run_html_version})")
-
 
 def test_auth_token(mode: int):
     assert mode in [-1, 0,
@@ -160,8 +159,6 @@ def test_auth_token(mode: int):
             assert response.text == 'Missing valid auth token!', "Response did not match the expected text"
         case 1:
             assert response.text == 'my_valid_secret_token', "Response did not match the expected text"
-
-    print_test_clear(f"test_auth_token(mode: {mode})")
 
 
 def test_post_data(data_type: int):
@@ -203,8 +200,6 @@ def test_post_data(data_type: int):
     # Check that the response contains the expected data
     assert response.json() == data, "Response does not contain the expected values!"
 
-    print_test_clear(f"test_post_data(data_type: {data_type})")
-
 
 def test_file_upload(stream: bool):
     file_contents = "INVALID"
@@ -230,8 +225,6 @@ def test_file_upload(stream: bool):
 
     # Check that the response contains the expected data
     assert response.json() == files_data, "Response does not contain the expected values!"
-
-    print_test_clear(f"test_file_upload(stream: {stream})")
 
 
 def test_file_download(stream: bool):
@@ -268,12 +261,10 @@ def test_file_download(stream: bool):
 
     assert file_contents == "bye world!", "Downloaded file content does not match expected value!"
 
-    print_test_clear(f"test_file_download(stream: {stream})")
-
 
 def test_send_json(run_body_version: bool, include_status_code: bool, status_code: int):
-    # assert status_code >= 100, "Status code cannot be less than 100!"
-    # assert status_code < 600, "Status code cannot be greater than 599!"
+    assert status_code >= 100, "Status code cannot be less than 100!"
+    assert status_code < 600, "Status code cannot be greater than 599!"
 
     url_queries = {
         "run_body_version": run_body_version,
@@ -308,43 +299,56 @@ def test_send_json(run_body_version: bool, include_status_code: bool, status_cod
 
     assert response.json() == data, "Response does not contain the expected values!"
 
-    print_test_clear(
-        f"test_send_json(run_body_version: {run_body_version}, include_status_code: {include_status_code}, status_code: {status_code})")
-
-
-# Call all the functions
-for i in range(0, 3):
-    test_404(i)
-
 
 # Define the list of parameter values
-param_values = [False, True]
+bool_values = [False, True]
 status_code_values = [200, 400, 404, 500]
 
-# Iterate over all combinations of parameter values
-for include_ending_slash in param_values:
-    for include_url_query in param_values:
-        for include_second_url_param in param_values:
-            for run_html_version in param_values:
-                # Call the function with the current combination of parameter values
-                test_uri_params(include_ending_slash,
-                                include_url_query, include_second_url_param, run_html_version)
-
-for i in range(-1, 2):
-    test_auth_token(i)
-
+# ============================== Start of test adding ==============================
 for i in range(0, 3):
-    test_post_data(i)
+    tests_to_run.append(partial(test_404, i))
 
-for stream in param_values:
-    test_file_upload(stream)
-    test_file_download(stream)
+# Iterate over all combinations of parameter values
+for include_ending_slash in bool_values:
+    for include_url_query in bool_values:
+        for include_second_url_param in bool_values:
+            for run_html_version in bool_values:
+                tests_to_run.append(partial(test_uri_params, include_ending_slash,
+                                    include_url_query, include_second_url_param, run_html_version))
 
-# test_send_json(True, False, False, 200)
+# Iterate over all combinations of parameter values
+for i in range(-1, 2):
+    tests_to_run.append(partial(test_auth_token, i))
 
-for run_body_version in param_values:
-    for include_status_code in param_values:
+# Iterate over all combinations of parameter values
+for i in range(0, 3):
+    tests_to_run.append(partial(test_post_data, i))
+
+# Iterate over all combinations of parameter values
+for stream in bool_values:
+    tests_to_run.append(partial(test_file_upload, stream))
+    tests_to_run.append(partial(test_file_download, stream))
+
+# Iterate over all combinations of parameter values
+for run_body_version in bool_values:
+    for include_status_code in bool_values:
         for status_code in status_code_values:
-            test_send_json(run_body_version, include_status_code, status_code)
+            tests_to_run.append(
+                partial(test_send_json, run_body_version, include_status_code, status_code))
+# ==============================  End of test adding  ==============================
 
-print(f"{Colors.OKGREEN}✓ All tests cleared{Colors.ENDC}")
+print(f"{Colors.OKBLUE}>>  Running {len(tests_to_run)} tests  <<{Colors.ENDC}")
+print("")
+
+# Call all the test functions
+for i, test_to_run in enumerate(tests_to_run):
+    clean_function_name = func_reg.sub(r"\1", str(test_to_run.func))
+    function_call = f"{Colors.OKCYAN}{clean_function_name}{str(test_to_run.args).replace(',)', ')')}{Colors.ENDC}"
+    print(
+        f"{Colors.OKCYAN}[ ]{Colors.ENDC} Running: {function_call} ({i + 1}/{len(tests_to_run)})")
+    test_to_run()
+    print(
+        f"{Colors.OKGREEN}[✓]{Colors.ENDC} Cleared: {function_call} ({i + 1}/{len(tests_to_run)})")
+    print("")
+
+print(f"{Colors.OKGREEN}✓ All {len(tests_to_run)} tests cleared{Colors.ENDC}")

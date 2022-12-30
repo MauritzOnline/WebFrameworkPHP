@@ -25,9 +25,14 @@ class Colors:
 
 
 tests_to_run: list[partial] = []
+current_test_response = ""
+current_test_status_code = 0
 
 
 def test_404(mode: int):
+    global current_test_response
+    global current_test_status_code
+
     assert mode in [
         0, 1, 2], 'Invalid mode passed to "test_404" function (valid ones: 0, 1, 2)!'
 
@@ -45,6 +50,9 @@ def test_404(mode: int):
     # Check that response has ben received
     assert response != None, "Response not received!"
 
+    current_test_response = response.text
+    current_test_status_code = response.status_code
+
     # Check that the response status code is 404
     assert response.status_code == 404, "HTTP status code is not 404!"
 
@@ -59,6 +67,9 @@ def test_404(mode: int):
 
 
 def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
+    global current_test_response
+    global current_test_status_code
+
     # Set the base URL
     base_url = f'{API_URL}/uri_params'
 
@@ -82,6 +93,8 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
 
     # Make a GET request to the API
     response = requests.get(base_url)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
 
     # Check that the response status code is 200 (OK)
     assert response.status_code == 200, "HTTP status code is not 200!"
@@ -130,6 +143,9 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
 
 
 def test_auth_token(mode: int):
+    global current_test_response
+    global current_test_status_code
+
     assert mode in [-1, 0,
                     1], 'Invalid mode passed to "test_auth_token" function (valid ones: -1, 0, 1)!'
     headers = {}
@@ -144,6 +160,8 @@ def test_auth_token(mode: int):
 
     # Make a GET request to the API
     response = requests.get(f'{API_URL}/bearer', headers=headers)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
 
     # Check that the response status code is 200 (OK)
     assert response.status_code == 200, "HTTP status code is not 200!"
@@ -162,6 +180,9 @@ def test_auth_token(mode: int):
 
 
 def test_post_data(data_type: int):
+    global current_test_response
+    global current_test_status_code
+
     assert data_type in [
         0, 1, 2], 'Invalid "data_type" passed to "test_post_data" function (valid ones: 0, 1, 2)!'
 
@@ -194,6 +215,9 @@ def test_post_data(data_type: int):
     # Check that response has ben received
     assert response != None, "Response not received!"
 
+    current_test_response = response.text
+    current_test_status_code = response.status_code
+
     # Check that the response status code is 200 (OK)
     assert response.status_code == 200, "HTTP status code is not 200!"
 
@@ -202,6 +226,9 @@ def test_post_data(data_type: int):
 
 
 def test_file_upload(stream: bool):
+    global current_test_response
+    global current_test_status_code
+
     file_contents = "INVALID"
 
     with open(FILE_TO_UPLOAD, "r") as file:
@@ -214,6 +241,8 @@ def test_file_upload(stream: bool):
 
     response = requests.post(
         f'{API_URL}/upload_file', files=files_data, stream=stream)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
 
     # Check that the response status code is 200 (OK)
     assert response.status_code == 200, "HTTP status code is not 200!"
@@ -228,12 +257,17 @@ def test_file_upload(stream: bool):
 
 
 def test_file_download(stream: bool):
+    global current_test_response
+    global current_test_status_code
+
     base_url = f'{API_URL}/download_file'
 
     if stream == True:
         base_url += "/stream"
 
     response = requests.get(base_url, stream=stream)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
 
     # print(response.text)
 
@@ -263,6 +297,9 @@ def test_file_download(stream: bool):
 
 
 def test_send_json(run_body_version: bool, include_status_code: bool, status_code: int):
+    global current_test_response
+    global current_test_status_code
+
     assert status_code >= 100, "Status code cannot be less than 100!"
     assert status_code < 600, "Status code cannot be greater than 599!"
 
@@ -282,6 +319,8 @@ def test_send_json(run_body_version: bool, include_status_code: bool, status_cod
 
     response = requests.post(f'{API_URL}/send_json',
                              params=url_queries, data=data)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
 
     # Check that the response status code is "status_code"
     assert response.status_code == status_code, "HTTP status code is not {} (is: {})!".format(
@@ -347,7 +386,17 @@ for i, test_to_run in enumerate(tests_to_run):
     function_call = f"{Colors.OKCYAN}{clean_function_name}{str(test_to_run.args).replace(',)', ')')}{Colors.ENDC}"
     print(
         f"{Colors.OKCYAN}[ ]{Colors.ENDC} Running: {function_call} ({i + 1}/{len(tests_to_run)})")
-    test_to_run()
+    try:
+        test_to_run()
+    except AssertionError as err:
+        print(
+            f"{Colors.FAIL}[✗]{Colors.ENDC} Errored: {function_call} ({i + 1}/{len(tests_to_run)})")
+        print("")
+        print(
+            f'{Colors.OKBLUE}Server response:{Colors.ENDC} "{current_test_response}" {Colors.OKCYAN}(status code: {current_test_status_code}){Colors.ENDC}')
+        print(
+            f'{Colors.FAIL}Assertion Error:{Colors.ENDC} "{err}"')
+        exit()
     print(
         f"{Colors.OKGREEN}[✓]{Colors.ENDC} Cleared: {function_call} ({i + 1}/{len(tests_to_run)})")
     print("")

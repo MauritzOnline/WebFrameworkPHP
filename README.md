@@ -342,12 +342,12 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 **Examples:**
 
 ```php
-// it's recommended to check if the file exists first, since it might otherwise error out
+// it's recommended to check if the file exists first, since it will otherwise error out
 if(file_exists("hello_world.txt")) {
   $this->send_file("hello_world.txt");
 }
 
-// it's recommended to check if the file exists first, since it might otherwise error out
+// it's recommended to check if the file exists first, since it will otherwise error out
 if(file_exists("hello_world.txt")) {
   $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 }

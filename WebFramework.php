@@ -9,6 +9,7 @@
 
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
+// TODO: implement support for other authentication means than Bearer tokens?
 
 class WebFramework {
   private string $_routes_folder;

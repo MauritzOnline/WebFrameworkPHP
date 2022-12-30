@@ -274,7 +274,7 @@ class WebFramework {
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server) [this assumes the file exists, please make sure it does]
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
-    if(!file_exists($file_path)) {
+    if(!is_readable($file_path)) {
       $this->_send_error(20100);
     }
 

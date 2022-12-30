@@ -342,13 +342,13 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 **Examples:**
 
 ```php
-// it's recommended to check if the file exists first, since otherwise it will error out
-if(file_exists("hello_world.txt")) {
+// it's recommended to check if the file is readable first, since otherwise it will error out
+if(is_readable("hello_world.txt")) {
   $this->send_file("hello_world.txt");
 }
 
-// it's recommended to check if the file exists first, since otherwise it will error out
-if(file_exists("hello_world.txt")) {
+// it's recommended to check if the file is readable first, since otherwise it will error out
+if(is_readable("hello_world.txt")) {
   $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 }
 ```
@@ -567,7 +567,7 @@ You can easily customize the default error handler that is provided. This error 
 - **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
 - **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
 - **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
-- **E20100:** Error sent from `send_file`, caused by missing file at given `$file_path`.
+- **E20100:** Error sent from `send_file`, caused by missing or unreadable file at the given `$file_path`.
 
 ---
 

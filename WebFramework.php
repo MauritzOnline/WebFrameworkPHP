@@ -2,7 +2,7 @@
 /**
  * WebFrameworkPHP: A small and simple web framework built using PHP.
  *
- * @copyright   Copyright (c) 2021-2022, Mauritz Nilsson <mail@mauritzonline.com>
+ * @copyright   Copyright (c) 2021-2023, Mauritz Nilsson <mail@mauritzonline.com>
  * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/main/LICENSE
  * @version     0.1.0
  */

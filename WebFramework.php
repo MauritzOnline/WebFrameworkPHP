@@ -9,7 +9,7 @@
 
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
-// TODO: implement support for other authentication means than Bearer tokens?
+// TODO: implement middleware (to add support for custom auth parsing, like JSON Web Tokens)?
 
 class WebFramework {
   private string $_routes_folder;
@@ -38,6 +38,7 @@ class WebFramework {
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
       "uri" => rtrim($this->_str_replace_once($this->_root_uri, "", $this->_full_request_uri), "/"),
       "token" => null, // Only gets parsed if the parse_auth() method is called before start()
+      "credentials" => null, // Only gets parsed if the parse_auth() method is called before start()
       "query" => array(),
       "params" => array(),
       "body" => array(),
@@ -343,10 +344,11 @@ class WebFramework {
     header_remove("X-Powered-By");
   }
 
-  // Parse Bearer token provided by HTTP requests and if valid adds it to $this->request->token
+  // Parse "Basic base64(username:password)" & "Bearer token" provided by HTTP requests and if valid adds it to $this->request->credentials & $this->request->token
   public function parse_auth() {
     $header = null;
     $this->request->token = null;
+    $this->request->credentials = null;
 
     // Authorization header getting code from: https://stackoverflow.com/a/40582472
     if(isset($_SERVER["Authorization"])) {
@@ -363,12 +365,35 @@ class WebFramework {
       }
     }
 
-    // strlen > 7, comes from "Bearer X", since it has to be at least 8 characters to contain a token
-    if($header !== null && strlen($header) > 7) {
+    // strlen > 6, comes from "Basic X" & "Bearer X", since it has to be at least 7 characters to contain a token
+    if($header !== null && strlen($header) > 6) {
       if(str_starts_with($header, "Bearer ")) {
         $exploded_header = explode(" ", $header);
         if(count($exploded_header) > 1) {
           $this->request->token = $exploded_header[array_key_last($exploded_header)];
+        }
+      } else if(str_starts_with($header, "Basic ")) {
+        $exploded_header = explode(" ", $header);
+        if(count($exploded_header) > 1) {
+          $encoded_credentials = $exploded_header[array_key_last($exploded_header)];
+          $decoded_credentials = base64_decode($encoded_credentials);
+
+          // strlen > 2, comes from "Username:Password", since it has to be at least 3 characters to contain both a username and password
+          if($decoded_credentials !== false && strlen($decoded_credentials) > 2) {
+            // Use a regular expression to extract the username and password
+            $match_result = preg_match('/^(?<username>.+?):(?<password>.+)$/', $decoded_credentials, $matches);
+            if($match_result === 1) {
+              // INFO: ":" inside the username is not supported as per the spec, but are fine in the password field.
+              // INFO: ":" inside the username behaves like this: "john:doe:password" => Username: "john", Password: "doe:password"
+              // Spec: https://www.rfc-editor.org/rfc/rfc2617#section-2
+              
+              $this->request->credentials = array(
+                // INFO: Trims username & password, since "  john.doe" or "password  ", are not desired.
+                "username" => trim($matches["username"]),
+                "password" => trim($matches["password"])
+              );
+            }
+          }
         }
       }
     }

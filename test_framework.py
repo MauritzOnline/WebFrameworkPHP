@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+import base64
 from functools import partial
 
 # Set the global API URL
@@ -159,7 +160,7 @@ def test_auth_token(mode: int):
             headers["Authorization"] = "Bearer my_valid_secret_token"
 
     # Make a GET request to the API
-    response = requests.get(f'{API_URL}/bearer', headers=headers)
+    response = requests.get(f'{API_URL}/auth/bearer', headers=headers)
     current_test_response = response.text
     current_test_status_code = response.status_code
 
@@ -177,6 +178,59 @@ def test_auth_token(mode: int):
             assert response.text == 'Missing valid auth token!', "Response did not match the expected text"
         case 1:
             assert response.text == 'my_valid_secret_token', "Response did not match the expected text"
+
+
+def test_auth_basic(mode: int):
+    global current_test_response
+    global current_test_status_code
+
+    assert mode in [-1, 0,
+                    1, 2, 3], 'Invalid mode passed to "test_auth_basic" function (valid ones: -1, 0, 1, 2, 3)!'
+    headers = {}
+
+    credentials = [
+        "john.doe",
+        "password"
+    ]
+    if mode == 3:
+        credentials = [
+            "john:doe",
+            "pass:word"
+        ]
+
+    match mode:
+        case -1:
+            headers["Authorization"] = "Basic INVALID_TOKEN"
+        case 0:
+            pass
+        case 1:
+            headers["Authorization"] = "Basic " + \
+                base64.b64encode("john.doe:invalid".encode()).decode()
+        case 2 | 3:
+            headers["Authorization"] = "Basic " + \
+                base64.b64encode(":".join(credentials).encode()).decode()
+
+    # Make a GET request to the API
+    response = requests.get(f'{API_URL}/auth/basic', headers=headers)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
+
+    # Check that the response status code is 200 (OK)
+    assert response.status_code == 200, "HTTP status code is not 200!"
+
+    # Check that the response content is plaintext (uses "in" since ";charset=UTF-8" also get included)
+    assert 'text/plain' in response.headers['Content-Type'], "Content-Type is not text/plain!"
+
+    # Check that the response content is an exact match for the expected text
+    match mode:
+        case -1 | 0:
+            assert response.text == 'Missing valid auth credentials!', "Response did not match the expected text"
+        case 1:
+            assert response.text == 'Invalid auth credentials!', "Response did not match the expected text"
+        case 2:
+            assert response.text == 'username: "john.doe", password: "password"', "Response did not match the expected text"
+        case 3:
+            assert response.text == 'username: "john", password: "doe:pass:word"', "Response did not match the expected text"
 
 
 def test_post_data(data_type: int):
@@ -359,6 +413,10 @@ for include_ending_slash in bool_values:
 # Iterate over all combinations of parameter values for: test_auth_token
 for i in range(-1, 2):
     tests_to_run.append(partial(test_auth_token, i))
+
+# Iterate over all combinations of parameter values for: test_auth_basic
+for i in range(-1, 4):
+    tests_to_run.append(partial(test_auth_basic, i))
 
 # Iterate over all combinations of parameter values for: test_post_data
 for i in range(0, 3):

@@ -33,7 +33,9 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_json_body()](#send_json_body)
   - [send_file()](#send_file)
 - [HTML rendering](#html-rendering)
-- [Handling Bearer tokens](#handling-bearer-tokens)
+- [Authentication](#authentication)
+  - [Bearer Token](#bearer-token)
+  - [Basic Authentication](#basic-authentication)
 - [Custom 404 response](#custom-404-response)
 - [Custom error handler](#custom-error-handler)
 - [Custom headers](#custom-headers)
@@ -217,7 +219,7 @@ $webFramework->start();
 <?php
 
 $this->get("/demo", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));
@@ -250,7 +252,7 @@ $webFramework->start();
 <?php
 
 $webFramework->get("/manual", function() use($webFramework) {
-  $webFramework->send_json(array(
+  $webFramework->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));
@@ -272,7 +274,7 @@ $webFramework->get("/manual", function() use($webFramework) {
 
 // example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
 $this->all("/info", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "...",
   ));
@@ -282,7 +284,7 @@ $this->all("/info", function() {
 $this->get("/document", function() {
   // ... documents ...
 
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "Fetched all documents!",
     "documents" => array [...],
@@ -295,7 +297,7 @@ $this->get("/document/:id", function() {
 
   // ... fetch document ...
 
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "Fetched single document!",
     "document" => object {...},
@@ -309,7 +311,7 @@ $this->post("/document", function() {
 
   // ... create document ...
 
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "New document added!",
     "id" => $document_id
@@ -607,7 +609,9 @@ $this->render_html("/document/:id", function() {
 
 ---
 
-## Handling Bearer tokens
+## Authentication
+
+### Bearer Token
 
 You can use the provided `parse_auth()` method to parse for a Bearer token. If a valid Authorization HTTP header is found and the parsing is successful then the token will be added to `request->token`. If no valid token can be found then `request->token` will be `null`.
 
@@ -619,7 +623,78 @@ You can use the provided `parse_auth()` method to parse for a Bearer token. If a
 require_once("./classes/WebFramework.php");
 
 $webFramework = new WebFramework();
-$webFramework->parse_auth(); // activate parsing of Bearer token
+$webFramework->parse_auth(); // activate parsing of Basic Authentication & Bearer tokens
+
+$webFramework->get("/protected", function() use($webFramework) {
+  $token = $webFramework->request->token;
+
+  if($token === null) {
+    return $webFramework->send_json_body(array(
+      "status" => 403,
+      "message" => 'Missing or invalid Authorization header provided (use: "Authorization: Bearer ...")!',
+    ));
+  }
+
+  if($token !== "secret_token") {
+    return $webFramework->send_json_body(array(
+      "status" => 403,
+      "message" => 'Provided token is invalid!',
+    ));
+  }
+
+  return $webFramework->send_json_body(array(
+    "status" => 200,
+    "message" => "Hello protected world!",
+  ));
+});
+
+$webFramework->start();
+
+?>
+```
+
+### Basic Authentication
+
+You can use the provided `parse_auth()` method to parse for Basic Authentication requests. If a valid Authorization HTTP header is found and the parsing is successful then the provided username and password will be added to `request->credentials`. If no valid username and password can be found then `request->credentials` will be `null`.
+
+> The **username** & **password** in `request->credentials` get trimmed of leading and following spaces, since `"  john.doe"` or `"password  "`, are not desired.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->parse_auth(); // activate parsing of Basic Authentication & Bearer tokens
+
+$webFramework->get("/protected", function() use($webFramework) {
+  $credentials = $webFramework->request->credentials;
+
+  if($credentials === null) {
+    return $webFramework->send_json_body(array(
+      "status" => 403,
+      "message" => 'Missing or invalid Authorization header provided (use: "Authorization: Basic ...")!',
+    ));
+  }
+
+  if(
+    $credentials["username"] !== "john.doe" &&
+    $credentials["password"] !== "password"
+    ) {
+    return $webFramework->send_json_body(array(
+      "status" => 403,
+      "message" => 'Provided credentials are invalid!',
+    ));
+  }
+
+  return $webFramework->send_json_body(array(
+    "status" => 200,
+    "message" => "Hello protected world!",
+  ));
+});
+
 $webFramework->start();
 
 ?>
@@ -645,7 +720,7 @@ $this->all(":404", function() {
 
 // example #2: GET request handling
 $this->get(":404", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 404,
     "message" => "No route found!",
   ));
@@ -653,7 +728,7 @@ $this->get(":404", function() {
 
 // example #3: POST request handling
 $this->post(":404", function() {
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 404,
     "message" => "No route found!",
   ));
@@ -681,7 +756,7 @@ $webFramework = new WebFramework();
 $webFramework->debug_mode = true; // use this if you want more detailed messages (not recommended for production)
 
 $webFramework->set_custom_error_handler(function(int $error_code, string $error_message) use($webFramework) {
-  $webFramework->send_json(array(
+  $webFramework->send_json_body(array(
     "status" => 500,
     "message" => "Something went wrong, please try again later",
     "error" => array(
@@ -726,7 +801,7 @@ $this->get("/hello", function() {
   // Example HTTP header (will be activated for this route only)
   header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
 
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));
@@ -761,7 +836,7 @@ $webFramework->start();
 
 Implementing CORS handling is not something I feel is necessary. The point of this framework is to only provide what is necessary and potential security benefits. As such if you want to add CORS handling you can add it to all loaded routes by adding it above your call to `start()`. Also since CORS can be handled in various ways, implementing it would be counter productive.
 
-> CORS handling can also be added on a per route basis. If this is done then it has to be added before `send()`, `send_json()` or `render_html()`.
+> CORS handling can also be added on a per route basis. If this is done then it has to be added before `send()`, `send_json()`, `send_json_body()` or `render_html()`.
 
 **Example all routes:**
 
@@ -791,7 +866,7 @@ $this->get("/hello", function() {
   header("Access-Control-Allow-Origin: *");
   header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
 
-  $this->send_json(array(
+  $this->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));

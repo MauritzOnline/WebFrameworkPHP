@@ -316,6 +316,64 @@ class WebFramework {
     exit();
   }
 
+  // Move an uploaded file to the folder in $dest_folder
+  public function move_uploaded_file(string $file, string $dest_folder = ".", string $new_file_name = "", string $new_file_ext = ""): string {
+    if(empty($this->request->files)) {
+      throw new Exception("No files could be found in request!", 0);
+    }
+  
+    if(!isset($this->request->files[$file])) {
+      throw new Exception('Could not find the uploaded file under the property "' . $file . '"!', 1);
+    }
+    
+    $file = $this->request->files[$file];
+    if($file["error"] !== UPLOAD_ERR_OK) {
+      throw new Exception("An error occurred with the upload (Error: " . $file["error"] . ")!", 2);
+    }
+  
+    // Get the temporary file path
+    $tmp_file = $file["tmp_name"];
+
+    $file_name = trim($file["name"]);
+    $file_ext = ltrim(pathinfo($file_name, PATHINFO_EXTENSION), ".");
+    $file_name = trim(basename($file_name, "." . $file_ext));
+
+    $new_file_name = trim($new_file_name);
+    if($new_file_name !== "") {
+      $file_name = $new_file_name;
+    }
+
+    $new_file_ext = trim($new_file_ext);
+    if($new_file_ext !== "") {
+      $file_ext = ltrim($new_file_ext, ".");
+    }
+  
+    // Generate a new file name
+    $final_file_name = $file_name . "." . strtolower($file_ext);
+    $final_file_name = str_replace("/", "", $final_file_name);
+
+    $dest_folder = trim($dest_folder);
+    $folder_path = ($dest_folder !== "" ? $dest_folder : ".");
+    $folder_path = rtrim($folder_path, "/");
+
+    if(!is_writable($folder_path)) {
+      throw new Exception("Could not write to given folder path (" . $folder_path . ")!", 3);
+    }
+    if(!is_dir($folder_path)) {
+      throw new Exception("Given destination is not a folder (" . $folder_path . ")!", 4);
+    }
+  
+    // Set the target file path
+    $target_file = $folder_path . "/" . $final_file_name;
+  
+    // Move the file from the temporary location to the target location
+    if (move_uploaded_file($tmp_file, $target_file)) {
+      return $target_file;
+    } else {
+      throw new Exception("Failed to move uploaded file!", 5);
+    }
+  }
+
 
   /* Activates the following HelmetJS defaults [must be called before start()]:
       - contentSecurityPolicy

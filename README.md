@@ -2,12 +2,21 @@
 
 A small and simple web framework built using PHP. Handles routing and different request methods.
 
+> This projects was made so that I would have a way of creating simple REST APIs on my server, since most of the existing PHP projects were either way more complex than I liked or required Composer or some other installation requirement. Size was another concern, I didn't want to have to deal with the following things for every small REST API on my server: `a bunch of small files littering my server`, `large packages`, `a bunch of package dependencies to keep track of`.
+
+> While this is intended to be a small framework with close to native performance, I will still consider feature requests, but keep in-mind that I might reject your request if it doesn't align with the ethos of this project.
+
+## Planned features
+
+- Global middlewares _(used for e.g. authentication checking)_
+- Route-based middlewares? _(unsure about this one since it would add quite a bit of complexity and can still be handled using a global middleware)_
+
 ---
 
-<!-- START ToC -->
+<!-- START ToC | Documentation -->
 <!-- DON'T edit this section, instead run "generate_toc.py" to update -->
 
-## Table of Contents
+## Table of Contents | `Documentation`
 
 - [Installation](#installation)
 - [Error codes](#error-codes)

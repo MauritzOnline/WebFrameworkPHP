@@ -303,6 +303,7 @@ def test_file_upload(stream: bool):
 
     files_data["field1"] = files_data["field1"][1]
     files_data["file1"] = file_contents
+    files_data["uploaded_file"] = "test_files/uploaded_file.txt"
 
     # print(f"Response: \"{response.json()}\", Expected: \"{files_data}\"")
 

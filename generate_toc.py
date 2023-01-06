@@ -7,9 +7,10 @@ markdown_file = open(MARKDOWN_FILE_PATH, "r")
 current_lines = markdown_file.readlines()
 markdown_file.close()
 
+toc_title = ""
 toc_lines = [
     "<!-- DON'T edit this section, instead run \"generate_toc.py\" to update -->\n\n",
-    "## Table of Contents\n\n",
+    "## Table of Contents {TITLE}\n\n",
 ]
 toc_start = -1
 toc_end = -1
@@ -17,16 +18,33 @@ toc_end = -1
 # Parse for headings
 for index, line in enumerate(current_lines):
     inside_toc = False
+    under_toc = False
+
     if toc_start >= 0 and toc_end == -1:
         inside_toc = True
     elif toc_start >= 0 and index <= toc_end:
         inside_toc = True
 
+    if toc_end != -1 and index > toc_end:
+        under_toc = True
+
     if line.startswith("<!-- START ToC -->"):
         toc_start = index
+
+        for key, toc_line in enumerate(toc_lines):
+            toc_line = toc_line.replace(" {TITLE}", "")
+            toc_lines[key] = toc_line
+    elif line.startswith("<!-- START ToC | "):
+        toc_start = index
+        toc_title_split = line.split("|")
+        toc_title = toc_title_split[-1].replace("-->", "").strip()
+
+        for key, toc_line in enumerate(toc_lines):
+            toc_line = toc_line.replace("{TITLE}", f'| `{toc_title}`')
+            toc_lines[key] = toc_line
     elif line.startswith("<!-- END ToC -->"):
         toc_end = index
-    elif line.startswith("##") and inside_toc == False:
+    elif line.startswith("##") and inside_toc == False and under_toc == True:
         split_line = line.split(" ")
         if len(split_line) > 0:
             # Parse heading

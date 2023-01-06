@@ -41,6 +41,8 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_json()](#send_json)
   - [send_json_body()](#send_json_body)
   - [send_file()](#send_file)
+- [Moving uploaded files](#moving-uploaded-files)
+  - [Exceptions](#exceptions)
 - [HTML rendering](#html-rendering)
 - [Authentication](#authentication)
   - [Bearer Token](#bearer-token)
@@ -173,6 +175,7 @@ $this->request = (object) array(
   "method" => $_SERVER["REQUEST_METHOD"], // HTTP method of the request
   "content_type" => $_SERVER["CONTENT_TYPE"], // Content-Type of the request
   "uri" => "...", // the current URI
+  "credentials" => array(...), // the parsed basic authentication credentials of the request (only gets parsed if the parse_auth() method is called before start()) [will be null if not found]
   "token" => "...", // the parsed bearer token of the request (only gets parsed if the parse_auth() method is called before start()) [will be null if not found]
   "query" => array(...), // parsed URI queries (?hello=world&abc=123)
   "params" => array(...), // parsed URI params (/:hello/:abc)
@@ -552,6 +555,47 @@ if(is_readable("hello_world.txt")) {
 // it's recommended to check if the file is readable first, since otherwise it will error out
 if(is_readable("hello_world.txt")) {
   $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+}
+```
+
+---
+
+## Moving uploaded files
+
+> This function moves an uploaded file to a specified location. Returns the uploaded file's path on success.
+
+```php
+function move_uploaded_file(string $file, string $dest_folder = ".", string $new_file_name = "", string $new_file_ext = ""): string
+```
+
+### Exceptions
+
+- If no files are found in the request, an exception with error code `0` is thrown.
+- If the uploaded file is not found under the property name provided by `$file`, an exception with error code `1` is thrown.
+- If an error occurs with the upload, an exception with error code `2` is thrown.
+- If the specified folder path by `$dest_folder` is not writeable, an exception with error code `3` is thrown.
+- If the specified `$dest_folder` is not a folder, an exception with error code `4` is thrown.
+- If the file cannot be moved, an exception with error code `5` is thrown.
+
+**Examples:**
+
+```php
+// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+try {
+  // moves the file uploaded under the name "cv" to the "uploaded_files" folder
+  $uploaded_file = $this->move_uploaded_file("cv", "uploaded_files"); // returns the uploaded file's path (e.g. "uploaded_files/John Doe - CV.pdf")
+
+  return $this->send_json_body(array(
+    "status" => 200,
+    "message" => "Thank you for uploading your CV.",
+    "uploaded_path" => $uploaded_file
+  ));
+} catch(Exception $err) {
+  return $this->send_json_body(array(
+    "status" => 400,
+    "error" => $err->getMessage(),
+    "error_code" => $err->getCode()
+  ));
 }
 ```
 

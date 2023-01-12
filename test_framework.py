@@ -143,6 +143,47 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
             ], "URL query is not an empty array as expected!"
 
 
+def test_route_args(run_html_version: bool):
+    global current_test_response
+    global current_test_status_code
+
+    # Set the base URL
+    base_url = f'{API_URL}/route_args'
+
+    if run_html_version:
+        base_url += '/html'
+    else:
+        base_url += '/json'
+
+    # Make a GET request to the API
+    response = requests.get(base_url)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
+
+    # Check that the response status code is 200 (OK)
+    assert response.status_code == 200, "HTTP status code is not 200!"
+
+    if run_html_version:
+        # Check that the response content is HTML (uses "in" since ";charset=UTF-8" also get included)
+        assert 'text/html' in response.headers['Content-Type'], "Content-Type is not text/html!"
+    else:
+        # Check that the response content is a JSON object
+        assert response.headers['Content-Type'] == 'application/json', "Content-Type is not application/json!"
+
+    if run_html_version:
+        # Check that the response contains the expected data
+        assert '<p class="auth">1</p>' in response.text, "Missing or invalid auth in response!"
+        assert '<p class="arg1">123abc</p>' in response.text, "Missing or invalid arg1 in response!"
+    else:
+        # Check that the response JSON contains the expected data
+        data = response.json()
+        assert 'auth' in data, "Missing auth in response JSON!"
+        assert data['auth'] == True, 'auth does not match the expected value "123abc"'
+
+        assert 'arg1' in data, "Missing arg1 in response JSON!"
+        assert data['arg1'] == '123abc', 'arg1 does not match the expected value "123abc"'
+
+
 def test_view_rendering():
     global current_test_response
     global current_test_status_code
@@ -432,6 +473,10 @@ for include_ending_slash in bool_values:
             for run_html_version in bool_values:
                 tests_to_run.append(partial(test_uri_params, include_ending_slash,
                                     include_url_query, include_second_url_param, run_html_version))
+
+# Iterate over all combinations of parameter values for: test_route_args
+for run_html_version in bool_values:
+    tests_to_run.append(partial(test_route_args, run_html_version))
 
 tests_to_run.append(partial(test_view_rendering))
 

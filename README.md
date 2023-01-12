@@ -8,7 +8,6 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 ## TODO for `v1.0.0` release
 
-- Global middlewares _(used for e.g. authentication checking)_
 - Route-based middlewares? _(unsure about this one since it would add quite a bit of complexity and can still be handled using a global middleware)_
 - Add more comments
 - Add more tests

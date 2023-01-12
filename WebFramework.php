@@ -13,7 +13,7 @@
 // TODO: Route arguments, get(..., array $route_args), post(..., array $route_args)
 
 class WebFramework {
-  private $_options = array(
+  private array $_options = array(
     "routes_folder" => "routes",
     "views_folder" => "views",
     "provide_error_handler" => true,
@@ -27,12 +27,12 @@ class WebFramework {
   private string $_full_request_uri;
   private string $_root_uri;
   private string $_found_route_uri;
-  private $_routes = array();
-  private $_found404 = null;
+  private array $_routes = array();
+  private object|null $_found404 = null;
   private bool $_custom404Loaded = false;
   private $_error_handler;
 
-  public $request; // current request data
+  public object $request; // current request data
   public bool $debug_mode = false; // this gets overwritten by the constructor
 
   public function __construct(array $options) {

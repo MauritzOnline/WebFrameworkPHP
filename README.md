@@ -6,10 +6,15 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 > While this is intended to be a small framework with close to native performance, I will still consider feature requests, but keep in-mind that I might reject your request if it doesn't align with the ethos of this project.
 
-## Planned features
+## TODO for `v1.0.0` release
 
 - Global middlewares _(used for e.g. authentication checking)_
 - Route-based middlewares? _(unsure about this one since it would add quite a bit of complexity and can still be handled using a global middleware)_
+- Route arguments _(would be accessible by the middleware, for example if you wanted to pass an `auth` flag and only check for authentication in the middleware if this flag is set to `true`)_
+- Add more comments
+- Add more tests
+- Add example projects
+- Further expand documentation?
 
 ---
 

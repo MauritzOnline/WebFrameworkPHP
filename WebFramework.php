@@ -10,6 +10,7 @@
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
 // TODO: implement middleware (to add support for custom auth parsing, like JSON Web Tokens)?
+// TODO: Route arguments, get(..., array $route_args), post(..., array $route_args)
 
 class WebFramework {
   private string $_routes_folder;

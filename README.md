@@ -174,9 +174,9 @@ array(
   "views_folder" => "views",
   "provide_error_handler" => true,
   "use_json_error_handler" => false,
-  "debug_mode" => false, // true = will print additional information when errors occur
-  "include_status_code_in_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
-  "use_error_log" => true // true = will by default send detailed errors to error_log()
+  "debug_mode" => false,
+  "include_status_code_in_json" => true,
+  "use_error_log" => true
 );
 ```
 
@@ -939,8 +939,9 @@ You can easily customize the default error handler that is provided. This error 
 ```php
 <?php
 
-$webFramework = new WebFramework();
-$webFramework->debug_mode = true; // use this if you want more detailed messages (not recommended for production)
+$webFramework = new WebFramework(array(
+  "debug_mode" => true // use this if you want more detailed messages (not recommended for production)
+));
 
 $webFramework->set_custom_error_handler(function(int $error_code, string $error_message) use($webFramework) {
   $webFramework->send_json_body(array(

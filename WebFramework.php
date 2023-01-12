@@ -204,7 +204,7 @@ class WebFramework {
   // Sends a response to the client
   public function send(string $data, int $status_code = 200, string $content_type = "text/plain") {
     if($status_code < 100 || $status_code > 599) {
-      $this->_send_error(20001);
+      $this->_send_error(20001, 'send(): Given HTTP status code "' . htmlspecialchars($status_code) . '" is not in valid range (100-599)!');
     }
 
     http_response_code($status_code);
@@ -234,7 +234,7 @@ class WebFramework {
     if($encoded_data !== false) {
       $this->send($encoded_data, $status_code, "application/json");
     } else {
-      $this->_send_error(20000);
+      $this->_send_error(20000, 'send_json(): Failed to encode provided data!');
     }
   }
 
@@ -248,11 +248,11 @@ class WebFramework {
       $include_status_code = $this->include_status_code_in_json;
     }
 
-    // Check if provided status code in the data is a valid HTTP status code 100-599, otherwise ignore it and default to 200
     if($has_status_code) {
+      // Check if provided status code in the data is a valid number
       $status_code = intval($data->status);
       if($status_code === 0) {
-        $this->_send_error(20002);
+        $this->_send_error(20002, 'send_json_body(): Failed to decode status code from $data!');
       }
     }
 
@@ -270,14 +270,14 @@ class WebFramework {
     if($encoded_data !== false) {
       $this->send($encoded_data, $status_code, "application/json");
     } else {
-      $this->_send_error(20000);
+      $this->_send_error(20000, 'send_json_body(): Failed to encode provided data!');
     }
   }
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server) [this assumes the file exists, please make sure it does]
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
     if(!is_readable($file_path)) {
-      $this->_send_error(20100);
+      $this->_send_error(20100, 'send_file(): Provided file path "' . htmlspecialchars($file_path) . '" is not readable!');
     }
 
     if(trim($download_file_name) === "" || $download_file_name === null) {
@@ -572,7 +572,11 @@ class WebFramework {
   }
   
   // Calls the defined error handler function
-  private function _send_error(int $error_code = 11111, string $error_message = "Internal server error") {
+  private function _send_error(int $error_code = 11111, string $debug_error_message = "", string $error_message = "Internal server error") {
+    if($this->debug_mode === true && strlen($debug_error_message) > 0) {
+      $error_message = $debug_error_message;
+    }
+
     call_user_func($this->_error_handler, $error_code, $error_message);
     error_log("An internal error occurred in WebFrameworkPHP (E" . $error_code . ")!");
   }

@@ -25,9 +25,14 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 - [Installation](#installation)
 - [Error codes](#error-codes)
-- [Configuration flags](#configuration-flags)
+- [Constructor options](#constructor-options)
+  - [Routes folder](#routes-folder)
+  - [Views folder](#views-folder)
+  - [Provide error handler](#provide-error-handler)
+  - [Use JSON error handler](#use-json-error-handler)
   - [Debug mode](#debug-mode)
   - [Include status code in JSON output](#include-status-code-in-json-output)
+  - [Use `error_log`](#use-error_log)
 - [Request data](#request-data)
 - [Route loading](#route-loading)
   - [Auto loading](#auto-loading)
@@ -49,6 +54,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Moving uploaded files](#moving-uploaded-files)
   - [Exceptions](#exceptions)
 - [HTML rendering](#html-rendering)
+- [View rendering](#view-rendering)
 - [Authentication](#authentication)
   - [Bearer Token](#bearer-token)
   - [Basic Authentication](#basic-authentication)
@@ -154,18 +160,76 @@ You can easily customize the default error handler that is provided. This error 
 - **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
 - **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
 - **E20100:** Error sent from `send_file`, caused by missing or unreadable file at the given `$file_path`.
+- **E50000:** Error sent from `render_view`, caused by missing or unreadable file at the given `$view_str`.
 
 ---
 
-## Configuration flags
+## Constructor options
+
+**Default values:**
+
+```php
+array(
+  "routes_folder" => "routes",
+  "views_folder" => "views",
+  "provide_error_handler" => true,
+  "use_json_error_handler" => false,
+  "debug_mode" => false, // true = will print additional information when errors occur
+  "include_status_code_in_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
+  "use_error_log" => true // true = will by default send detailed errors to error_log()
+);
+```
+
+**Example:**
+
+```php
+$webFramework = new WebFramework(array(
+  "debug_mode" => true,
+  "include_status_code_in_json" => false
+));
+```
+
+### Routes folder
+
+Will change the folder used for auto-loading routes.
+
+### Views folder
+
+Will change the folder that `render_view()` uses to find view files.
+
+### Provide error handler
+
+Wether WebFrameworkPHP should provide a default error handler function, if none is provided then the default PHP error handling is used.
+
+### Use JSON error handler
+
+Wether the default error handler function provided by WebFrameworkPHP should output the error as JSON.
+
+**Example:**
+
+```json
+{
+  "status": 500,
+  "error": "...",
+  "error_code": 10000
+}
+```
 
 ### Debug mode
 
-Activated using `$webFramework->debug_mode = true;`. Debug mode can be turned on to get more detailed error messages.
+Wether the default error handler function provided by WebFrameworkPHP should provide detailed errors. This can make debugging much easier, but can also include details that you don't want users to see, as such this should not be turned on in a production deployment.
+
+Can also be activated using `$webFramework->debug_mode = true;` _(must be run before `start()`)_.
+
+This option can also be used inside routes to provide more information while running in debug mode.
 
 ### Include status code in JSON output
 
-Deactivated using `$webFramework->include_status_code_in_json = false;`. This disables it globally, it can always be turned on by passing the value to `send_json` or `send_json_body`.
+Wether `send_json` and `send_json_body` should include the `"status": 200` in the response body. This toggles it globally, it can always be toggled on a per call basis by passing appropriate option to `send_json` or `send_json_body`.
+
+### Use `error_log`
+
+Wether the default error handler function provided by WebFrameworkPHP should also use `error_log` to log more detailed errors. This can be useful if you don't want to turn on debug mode, but still want to see the more detailed errors.
 
 ---
 
@@ -608,8 +672,6 @@ try {
 
 ## HTML rendering
 
-> HTML can also be rendered at specified routes using the `render_html()` method.
-
 > A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase.
 
 ```php
@@ -663,6 +725,73 @@ $this->render_html("/document/:id", function() {
   </body>
 </html>
 <?php }, 200); ?>
+```
+
+---
+
+## View rendering
+
+> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase.
+
+```php
+function render_view(string $route_str, string $view_str, $status_code = 200, string $method = "GET")
+```
+
+> `$view_str` should be the name of the file inside the `views` folder. So `document` would turn into `views/document.php`, `hello/world` would turn into `views/hello/world.php`.
+
+**Examples:**
+
+`/routes/main.php`
+
+```php
+<?php
+
+$this->render_view("/", "main");
+$this->render_view("/document/:id", "document");
+
+?>
+```
+
+`/views/main.php`
+
+```php
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hello world!</title>
+  </head>
+
+  <body>
+    <p>Hello world! <?php echo $this->request->uri; ?></p>
+  </body>
+</html>
+```
+
+`/views/document.php`
+
+```php
+<?php
+  // ... logic to fetch document ...
+?>
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document viewer</title>
+  </head>
+
+  <body>
+    <h1><?php echo $document->title; ?></h1>
+    <main><?php echo $document->contents; ?></main>
+  </body>
+</html>
 ```
 
 ---

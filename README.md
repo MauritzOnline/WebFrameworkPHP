@@ -38,6 +38,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [Manual loading](#manual-loading)
 - [Routing](#routing)
   - [Route arguments](#route-arguments)
+- [Global middleware](#global-middleware)
 - [Redirection](#redirection)
   - [redirect()](#redirect)
   - [local_redirect()](#local_redirect)
@@ -416,7 +417,7 @@ $this->all("/info", function() {
   $this->send_json_body(array(
     "status" => 200,
     "message" => "...",
-    "route_arg" => $this->route->args["my_arg"]
+    "route_arg" => (isset($this->route->args["my_arg"]) ? $this->route->args["my_arg"] : "")
   ));
 }, array("my_arg" => "my_important_value"));
 
@@ -428,7 +429,7 @@ $this->get("/document", function() {
     "status" => 200,
     "message" => "Fetched all documents!",
     "documents" => array [...],
-    "route_arg" => $this->route->args["my_arg"]
+    "route_arg" => (isset($this->route->args["my_arg"]) ? $this->route->args["my_arg"] : "")
   ));
 }, array("my_arg" => "my_important_value"));
 
@@ -457,11 +458,48 @@ $this->render_view("/document/:id", "document", array("my_arg" => "my_important_
   <body>
     <h1><?php echo $document->title; ?></h1>
     <main>
-      <p><?php echo $this->route->args["my_arg"]; ?></p>
+      <p><?php echo (isset($this->route->args["my_arg"]) ? $this->route->args["my_arg"] : ""); ?></p>
       <p><?php echo $document->contents; ?></p>
     </main>
   </body>
 </html>
+```
+
+---
+
+## Global middleware
+
+> Allows to do check before any route runs, this can be useful for authentication checks, using any of the `send` methods will stop execution of any routes. Currently only one global middleware is support, multiple global middleware and maybe even route specific ones might be added in the future.
+
+> A global middleware is added by passing a function into `start()`.
+
+**Example:**
+
+```php
+<?php
+
+require_once("./classes/WebFramework.php");
+
+$webFramework = new WebFramework();
+$webFramework->parse_auth(); // this can either be placed here or inside the middleware (just make sure do not add it in two places)
+
+$webFramework->start(function() use($webFramework) {
+  $route_args = $webFramework->route->args;
+  $is_auth_required = (isset($route_args["auth"]) ? $route_args["auth"] : false);
+
+  if($is_auth_required === true) {
+    $webFramework->parse_auth(); // this can either be placed here or anytime before the call of "start()" (just make sure do not add it in two places)
+
+    if($webFramework->request->token === null) {
+      $webFramework->send("Missing valid auth token!", 403); // stops any route from being run
+    }
+    if($webFramework->request->token !== "my_valid_secret_token") {
+      $webFramework->send("Invalid auth token!", 403); // stops any route from being run
+    }
+  }
+});
+
+?>
 ```
 
 ---

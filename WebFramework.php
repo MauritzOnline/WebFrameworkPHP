@@ -13,7 +13,16 @@
 // TODO: Route arguments, get(..., array $route_args), post(..., array $route_args)
 
 class WebFramework {
-  private string $_routes_folder;
+  private $_options = array(
+    "routes_folder" => "routes",
+    "views_folder" => "views",
+    "provide_error_handler" => true,
+    "use_json_error_handler" => false,
+    "debug_mode" => false, // true = will print additional information when errors occur
+    "include_status_code_in_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
+    "use_error_log" => true // true = will by default send detailed errors to error_log()
+  );
+
   private string $_script_file;
   private string $_full_request_uri;
   private string $_root_uri;
@@ -24,12 +33,23 @@ class WebFramework {
   private $_error_handler;
 
   public $request; // current request data
-  public bool $debug_mode = false; // true = will print additional information when errors occur
-  public bool $include_status_code_in_json = true; // true = will add ["status"] to all JSON output sent using "send_json"
-  public bool $use_error_log = true; // true = will by default send detailed errors to error_log()
+  public bool $debug_mode = false; // this gets overwritten by the constructor
 
-  public function __construct($routes_folder = "routes", $provide_error_handler = true) {
-    $this->_routes_folder = $routes_folder;
+  public function __construct(array $options) {
+    foreach($this->_options as $key => $value) {
+      if(isset($options[$key])) {
+        $new_value = $options[$key];
+        $expected_type = gettype($value);
+        $given_type = gettype($new_value);
+
+        if($given_type === $expected_type) {
+          $this->_options[$key] = (is_string($new_value) ? trim($new_value) : $new_value);
+        }
+      }
+    }
+
+    $this->debug_mode = $this->_options["debug_mode"];
+
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
     $this->_root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
     $this->_full_request_uri = $_SERVER["REQUEST_URI"];
@@ -54,11 +74,20 @@ class WebFramework {
     }
     $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
 
-    if($provide_error_handler) {
+    if($this->_options["provide_error_handler"] === true) {
       // Default error handler
-      $this->_error_handler = function($error_code, $error_message) {
-        $this->send($error_message . " (E" . $error_code . ")!", 500);
-      };
+      if($this->_options["use_json_error_handler"] === true) {
+        $this->_error_handler = function($error_code, $error_message) {
+          $this->send_json(array(
+            "error" => $error_message . " (E" . $error_code . ")!",
+            "error_code" => $error_code
+          ), 500);
+        };
+      } else {
+        $this->_error_handler = function($error_code, $error_message) {
+          $this->send($error_message . " (E" . $error_code . ")!", 500);
+        };
+      }
 
       /* register_shutdown_function(function() {
         die("(die) shutdown");
@@ -72,7 +101,7 @@ class WebFramework {
           "Line: {" . $e->getLine() . "};"
         ));
 
-        if($this->use_error_log === true) {
+        if($this->_options["use_error_log"] === true) {
           error_log("WebFrameworkPHP ERROR >> " . $error_message);
         }
 
@@ -218,7 +247,7 @@ class WebFramework {
   public function send_json(object|array $data, int $status_code = 200, bool|null $include_status_code = null) {
     $data = (object) $data;
     if($include_status_code === null) {
-      $include_status_code = $this->include_status_code_in_json;
+      $include_status_code = $this->_options["include_status_code_in_json"];
     }
 
     $final_data = $data;
@@ -246,7 +275,7 @@ class WebFramework {
     $status_code = 200;
 
     if($include_status_code === null) {
-      $include_status_code = $this->include_status_code_in_json;
+      $include_status_code = $this->_options["include_status_code_in_json"];
     }
 
     if($has_status_code) {
@@ -464,7 +493,7 @@ class WebFramework {
 
   // Start the web framework (matching route, parsing data, etc...)
   public function start() {
-    if(!empty($this->_routes_folder)) $this->_load_routes();
+    if(!empty($this->_options["routes_folder"])) $this->_load_routes();
     $this->_found404 = null;
     $found_route = null;
 
@@ -601,12 +630,12 @@ class WebFramework {
 
   // Auto loads routes (should not be used directly, use start())
   private function _load_routes() {
-    if(is_readable($this->_routes_folder)) {
+    if(is_readable($this->_options["routes_folder"])) {
       // Find all endpoints and require them (ignores hidden files)
-      foreach(scandir($this->_routes_folder) as $key => $endpoint) {
+      foreach(scandir($this->_options["routes_folder"]) as $key => $endpoint) {
         if(!str_starts_with($endpoint, ".")) {
           if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
-            require_once($this->_routes_folder . "/" . $endpoint);
+            require_once($this->_options["routes_folder"] . "/" . $endpoint);
           }
         }
       }

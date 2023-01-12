@@ -469,9 +469,9 @@ $this->render_view("/document/:id", "document", array("my_arg" => "my_important_
 
 ## Global middleware
 
-> Allows to do check before any route runs, this can be useful for authentication checks, using any of the `send` methods will stop execution of any routes. Currently only one global middleware is support, multiple global middleware and maybe even route specific ones might be added in the future.
+> Allows to do check before any route runs, this can be useful for authentication checks, using any of the `send` methods will stop execution of any routes. Route specific middleware might be supported in the future, but a similar function can already be accomplished by checking the value of `$webFramework->route->uri`.
 
-> A global middleware is added by passing a function into `start()`.
+> A global middleware is added by calling the `add_middleware()` method. Multiple middleware can be added, but they must all be added before the call to `start()`.
 
 **Example:**
 
@@ -481,14 +481,14 @@ $this->render_view("/document/:id", "document", array("my_arg" => "my_important_
 require_once("./classes/WebFramework.php");
 
 $webFramework = new WebFramework();
-$webFramework->parse_auth(); // this can either be placed here or inside the middleware (just make sure do not add it in two places)
+$webFramework->parse_auth(); // this can either be placed here or inside the middleware (just make sure do not add it in two places) [recommended]
 
-$webFramework->start(function() use($webFramework) {
+$webFramework->add_middleware(function() use($webFramework) {
   $route_args = $webFramework->route->args;
   $is_auth_required = (isset($route_args["auth"]) ? $route_args["auth"] : false);
 
   if($is_auth_required === true) {
-    $webFramework->parse_auth(); // this can either be placed here or anytime before the call of "start()" (just make sure do not add it in two places)
+    $webFramework->parse_auth(); // this can either be placed here or anytime before the adding of this middleware (just make sure do not add it in two places)
 
     if($webFramework->request->token === null) {
       $webFramework->send("Missing valid auth token!", 403); // stops any route from being run
@@ -498,6 +498,8 @@ $webFramework->start(function() use($webFramework) {
     }
   }
 });
+
+$webFramework->start();
 
 ?>
 ```

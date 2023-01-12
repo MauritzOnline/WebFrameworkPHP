@@ -310,12 +310,12 @@ class WebFramework {
       $this->_send_error(20100, 'send_file(): Provided file path "' . htmlspecialchars($file_path) . '" is not readable!');
     }
 
-    if(trim($download_file_name) === "" || $download_file_name === null) {
+    if($download_file_name === null || trim($download_file_name) === "") {
       // Get the file name from the file path
       $download_file_name = basename($file_path);
     }
 
-    if(trim($content_type) === "" || $content_type === null) {
+    if($content_type === null || trim($content_type) === "") {
       // Create a new file info object
       $finfo = new finfo(FILEINFO_MIME_TYPE);
       // Get the MIME type of the file

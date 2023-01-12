@@ -143,6 +143,28 @@ def test_uri_params(include_ending_slash: bool, include_url_query: bool, include
             ], "URL query is not an empty array as expected!"
 
 
+def test_view_rendering():
+    global current_test_response
+    global current_test_status_code
+
+    # Set the base URL
+    base_url = f'{API_URL}/view_rendering/123abc'
+
+    # Make a GET request to the API
+    response = requests.get(base_url)
+    current_test_response = response.text
+    current_test_status_code = response.status_code
+
+    # Check that the response status code is 200 (OK)
+    assert response.status_code == 200, "HTTP status code is not 200!"
+
+    # Check that the response content is HTML (uses "in" since ";charset=UTF-8" also get included)
+    assert 'text/html' in response.headers['Content-Type'], "Content-Type is not text/html!"
+
+    # Check that the response contains the expected data
+    assert '<p class="param1">123abc</p>' in response.text, "Missing or invalid param1 in response!"
+
+
 def test_auth_token(mode: int):
     global current_test_response
     global current_test_status_code
@@ -410,6 +432,8 @@ for include_ending_slash in bool_values:
             for run_html_version in bool_values:
                 tests_to_run.append(partial(test_uri_params, include_ending_slash,
                                     include_url_query, include_second_url_param, run_html_version))
+
+tests_to_run.append(partial(test_view_rendering))
 
 # Iterate over all combinations of parameter values for: test_auth_token
 for i in range(-1, 2):

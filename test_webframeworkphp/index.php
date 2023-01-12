@@ -15,7 +15,7 @@ $webFramework->start(function() use($webFramework) {
   if($is_auth_required === true) {
     $webFramework->parse_auth(); // this can either be placed here or anytime before the call of "start()" (just make sure do not add it in two places)
 
-    if($use_basic_auth) {
+    if($use_basic_auth === true) {
       $credentials = $webFramework->request->credentials;
       $users = array(
         "john.doe" => "password",

@@ -70,7 +70,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 ## Installation
 
-Go download version [0.1.2](https://github.com/MauritzOnline/WebFrameworkPHP/releases/tag/v0.1.2) _(latest release)_.
+Go download version [0.2.0](https://github.com/MauritzOnline/WebFrameworkPHP/releases/tag/v0.2.0) _(latest release)_.
 
 > The `main` branch can also be downloaded, but may include code that hasn't been properly tested yet.
 

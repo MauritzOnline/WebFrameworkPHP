@@ -206,6 +206,23 @@ class WebFramework {
     $this->_add_route(strtoupper($method), $route_str, $route_callback, true, $status_code);
   }
 
+  // Adds a GET method route to be loaded, with tagging that HTML will be rendered
+  public function render_view(string $route_str, string $view_str, $status_code = 200, string $method = "GET") {
+    $view_str = preg_replace("/[.]php$/i", "", trim($view_str));
+    $view_file = rtrim($this->_options["views_folder"], "/") . "/" . trim($view_str, "/") . ".php";
+
+    if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {
+      $method = "GET";
+    }
+
+    if(is_readable($view_file)) {
+      $route_callback = function() use($view_file) { require_once($view_file); };
+      $this->_add_route(strtoupper($method), $route_str, $route_callback, true, $status_code);
+    } else {
+      $this->_send_error(50000, 'render_view(): Given view file "' . htmlspecialchars($view_file) . '" is not readable!');
+    }
+  }
+
   // Adds a route to be loaded for all methods
   public function all(string $route_str, callable $route_callback) {
     $this->_add_route("ALL", $route_str, $route_callback);

@@ -12,10 +12,10 @@
 
 class WebFramework {
   private array $_options = array(
-    "routes_folder" => "routes",
-    "views_folder" => "views",
-    "provide_error_handler" => true,
-    "use_json_error_handler" => false,
+    "routes_folder" => "routes", // which folder to search for auto-loading routes
+    "views_folder" => "views", // which folder to search for views used by "render_view"
+    "provide_error_handler" => true, // true = a default error handler will be provided (otherwise the default PHP one will be used)
+    "use_json_error_handler" => false, // true = will use "send_json" rather than "send" for the provided error handler
     "debug_mode" => false, // true = will print additional information when errors occur
     "include_status_code_in_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
     "use_error_log" => true // true = will by default send detailed errors to error_log()

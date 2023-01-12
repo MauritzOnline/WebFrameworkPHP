@@ -26,7 +26,6 @@ class WebFramework {
   private string $_script_file;
   private string $_full_request_uri;
   private string $_root_uri;
-  private string $_found_route_uri;
   private array $_routes = array();
   private object|null $_found404 = null;
   private bool $_custom404Loaded = false;
@@ -66,8 +65,6 @@ class WebFramework {
       "body" => array(),
       "files" => array()
     );
-
-    $this->_found_route_uri = "";
 
     if(isset($_GET) && !empty($_GET)) {
       $this->request->uri = explode("?", $this->request->uri)[0];
@@ -153,7 +150,7 @@ class WebFramework {
       "script_file" => $this->_script_file,
       "root_uri" => $this->_root_uri,
       "full_request_uri" => $this->_full_request_uri,
-      "found_route_uri" => $this->_found_route_uri,
+      "route" => $this->route,
       "request" => $this->request,
     ];
   }
@@ -632,7 +629,6 @@ class WebFramework {
         header("Content-Type: text/html");
       }
 
-      $this->_found_route_uri = $route->uri;
       call_user_func($route->callback);
 
       if($route->is_html) {

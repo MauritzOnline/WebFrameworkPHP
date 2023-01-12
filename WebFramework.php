@@ -33,6 +33,7 @@ class WebFramework {
   private $_error_handler;
 
   public object $request; // current request data
+  public object|null $route = null; // this get overwritten by start()
   public bool $debug_mode = false; // this gets overwritten by the constructor
 
   public function __construct(array $options) {
@@ -199,15 +200,20 @@ class WebFramework {
   }
 
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
-  public function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET") {
+  public function render_html(string $route_str, callable $route_callback, $route_args = array(), $status_code = 200, string $method = "GET") {
     if(!in_array(strtoupper($method), array("ALL", "GET", "POST", "PUT", "PATCH", "DELETE"))) {
       $method = "GET";
     }
-    $this->_add_route(strtoupper($method), $route_str, $route_callback, true, $status_code);
+    $this->_add_route(strtoupper($method), $route_str, $route_callback, array_replace($route_args, array(
+      "__route_options" => array(
+        "is_html" => true,
+        "html_status_code" => $status_code
+      )
+    )));
   }
 
   // Adds a GET method route to be loaded, with tagging that HTML will be rendered
-  public function render_view(string $route_str, string $view_str, $status_code = 200, string $method = "GET") {
+  public function render_view(string $route_str, string $view_str, $route_args = array(), $status_code = 200, string $method = "GET") {
     $view_str = preg_replace("/[.]php$/i", "", trim($view_str));
     $view_file = rtrim($this->_options["views_folder"], "/") . "/" . trim($view_str, "/") . ".php";
 
@@ -217,35 +223,40 @@ class WebFramework {
 
     if(is_readable($view_file)) {
       $route_callback = function() use($view_file) { require_once($view_file); };
-      $this->_add_route(strtoupper($method), $route_str, $route_callback, true, $status_code);
+      $this->_add_route(strtoupper($method), $route_str, $route_callback, array_replace($route_args, array(
+        "__route_options" => array(
+          "is_html" => true,
+          "html_status_code" => $status_code
+        )
+      )));
     } else {
       $this->_send_error(50000, 'render_view(): Given view file "' . htmlspecialchars($view_file) . '" is not readable!');
     }
   }
 
   // Adds a route to be loaded for all methods
-  public function all(string $route_str, callable $route_callback) {
-    $this->_add_route("ALL", $route_str, $route_callback);
+  public function all(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("ALL", $route_str, $route_callback, $route_args);
   }
   // Adds a GET method route to be loaded
-  public function get(string $route_str, callable $route_callback) {
-    $this->_add_route("GET", $route_str, $route_callback);
+  public function get(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("GET", $route_str, $route_callback, $route_args);
   }
   // Adds a POST method route to be loaded
-  public function post(string $route_str, callable $route_callback) {
-    $this->_add_route("POST", $route_str, $route_callback);
+  public function post(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("POST", $route_str, $route_callback, $route_args);
   }
   // Adds a PUT method route to be loaded
-  public function put(string $route_str, callable $route_callback) {
-    $this->_add_route("PUT", $route_str, $route_callback);
+  public function put(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("PUT", $route_str, $route_callback, $route_args);
   }
   // Adds a PATCH method route to be loaded
-  public function patch(string $route_str, callable $route_callback) {
-    $this->_add_route("PATCH", $route_str, $route_callback);
+  public function patch(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("PATCH", $route_str, $route_callback, $route_args);
   }
   // Adds a DELETE method route to be loaded
-  public function delete(string $route_str, callable $route_callback) {
-    $this->_add_route("DELETE", $route_str, $route_callback);
+  public function delete(string $route_str, callable $route_callback, array $route_args = array()) {
+    $this->_add_route("DELETE", $route_str, $route_callback, $route_args);
   }
 
   // Sends a response to the client
@@ -511,6 +522,7 @@ class WebFramework {
   // Start the web framework (matching route, parsing data, etc...)
   public function start() {
     if(!empty($this->_options["routes_folder"])) $this->_load_routes();
+    $this->route = null;
     $this->_found404 = null;
     $found_route = null;
 
@@ -585,15 +597,31 @@ class WebFramework {
         }
       }
 
-      // Run found route's callback
+      // Set current route & Run found route's callback
+      $this->_set_current_route($found_route);
       $this->_run_route($found_route);
     } else {
       if($this->_found404 !== null) {
+        $this->_set_current_route($this->_found404);
         $this->_run_route($this->_found404);
       } else {
         // No matching route could be found, send default 404
         $this->_not_found();
       }
+    }
+  }
+
+  private function _set_current_route(object $route) {
+    if(is_object($route)) {
+      $this->route = clone $route;
+      if(!property_exists($this->route, "args")) {
+        $this->route->args = array();
+      }
+
+      // remove unneeded properties
+      unset($this->route->callback);
+      unset($this->route->is_html);
+      unset($this->route->html_status_code);
     }
   }
 
@@ -629,17 +657,34 @@ class WebFramework {
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)
-  private function _add_route(string $method, string $route_str, callable $route_callback, bool $route_is_html = false, int $html_status_code = 200) {
+  private function _add_route(string $method, string $route_str, callable $route_callback, array $route_args = array()) {
     $clean_route_str = trim(explode("?", $route_str)[0]);
 
     if(str_starts_with($clean_route_str, ":404")) {
       $this->_custom404Loaded = true;
     }
 
+    $route_is_html = false;
+    $html_status_code = 200;
+
+    if(isset($route_args["__route_options"])) {
+      $route_options = array_slice($route_args["__route_options"], 0);
+      
+      if(isset($route_options["is_html"]) && is_bool($route_options["is_html"])) {
+        $route_is_html = $route_options["is_html"];
+      }
+      if(isset($route_options["html_status_code"]) && is_int($route_options["html_status_code"])) {
+        $html_status_code = $route_options["html_status_code"];
+      }
+
+      unset($route_args["__route_options"]);
+    }
+
     array_push($this->_routes, (object) [
       "method" => $method,
       "uri" => $clean_route_str === "/" ? $clean_route_str : rtrim($clean_route_str, "/"),
       "callback" => $route_callback,
+      "args" => $route_args,
       "is_html" => $route_is_html,
       "html_status_code" => $html_status_code,
     ]);

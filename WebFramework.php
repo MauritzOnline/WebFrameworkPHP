@@ -9,8 +9,6 @@
 
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
-// TODO: implement middleware (to add support for custom auth parsing, like JSON Web Tokens)?
-// TODO: Route arguments, get(..., array $route_args), post(..., array $route_args)
 
 class WebFramework {
   private array $_options = array(
@@ -30,6 +28,7 @@ class WebFramework {
   private object|null $_found404 = null;
   private bool $_custom404Loaded = false;
   private $_error_handler;
+  private array $_middleware = array();
 
   public object $request; // current request data
   public object|null $route = null; // this get overwritten by start()
@@ -517,8 +516,7 @@ class WebFramework {
   }
 
   // Start the web framework (matching route, parsing data, etc...)
-  public function start(callable|null $middleware = null) {
-    if(is_null($middleware)) $middleware = function() {};
+  public function start() {
     if(!empty($this->_options["routes_folder"])) $this->_load_routes();
     $this->route = null;
     $this->_found404 = null;
@@ -597,18 +595,33 @@ class WebFramework {
 
       // Set current route & Run found route's callback
       $this->_set_current_route($found_route);
-      call_user_func($middleware);
+      $this->_run_middleware();
       $this->_run_route($found_route);
     } else {
       if($this->_found404 !== null) {
         $this->_set_current_route($this->_found404);
-        call_user_func($middleware);
+        $this->_run_middleware();
         $this->_run_route($this->_found404);
       } else {
         // No matching route could be found, send default 404
-        call_user_func($middleware);
+        $this->_set_current_route((object) array(
+          "method" => $this->request->method,
+          "uri" => ":404",
+          "args" => array()
+        ));
+        $this->_run_middleware();
         $this->_not_found();
       }
+    }
+  }
+
+  public function add_middleware(callable $middleware) {
+    array_push($this->_middleware, $middleware);
+  }
+
+  private function _run_middleware() {
+    foreach($this->_middleware as $key => $middleware) {
+      call_user_func($middleware);
     }
   }
 

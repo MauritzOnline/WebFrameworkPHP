@@ -7,7 +7,7 @@ $webFramework = new WebFramework(array(
   "include_status_code_in_json" => false
 ));
 
-$webFramework->start(function() use($webFramework) {
+$webFramework->add_middleware(function() use($webFramework) {
   $route_args = $webFramework->route->args;
   $is_auth_required = (isset($route_args["auth"]) ? $route_args["auth"] : false);
   $use_basic_auth = (isset($route_args["use_basic_auth"]) ? $route_args["use_basic_auth"] : false);
@@ -40,5 +40,7 @@ $webFramework->start(function() use($webFramework) {
     }
   }
 });
+
+$webFramework->start();
 
 ?>

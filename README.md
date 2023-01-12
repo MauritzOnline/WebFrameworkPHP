@@ -10,7 +10,6 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 - Global middlewares _(used for e.g. authentication checking)_
 - Route-based middlewares? _(unsure about this one since it would add quite a bit of complexity and can still be handled using a global middleware)_
-- Route arguments _(would be accessible by the middleware, for example if you wanted to pass an `auth` flag and only check for authentication in the middleware if this flag is set to `true`)_
 - Add more comments
 - Add more tests
 - Add example projects
@@ -38,6 +37,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [Auto loading](#auto-loading)
   - [Manual loading](#manual-loading)
 - [Routing](#routing)
+  - [Route arguments](#route-arguments)
 - [Redirection](#redirection)
   - [redirect()](#redirect)
   - [local_redirect()](#local_redirect)
@@ -400,6 +400,68 @@ $this->post("/document", function() {
 });
 
 ?>
+```
+
+### Route arguments
+
+> Route arguments can be added to easily pass data that needs to be used by a middleware or code running inside a rendered view.
+
+> One example use case for this is passing `"auth" => true` as an argument, then check in a middleware if the defined route requires authentication and only check for an auth token if that is provided. This solves the issue of having to check for authentication on every route or having to check the URI to know if it should have authentication or not.
+
+```php
+<?php
+
+// example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
+$this->all("/info", function() {
+  $this->send_json_body(array(
+    "status" => 200,
+    "message" => "...",
+    "route_arg" => $this->route->args["my_arg"]
+  ));
+}, array("my_arg" => "my_important_value"));
+
+// example #2: GET request handling
+$this->get("/document", function() {
+  // ... documents ...
+
+  $this->send_json_body(array(
+    "status" => 200,
+    "message" => "Fetched all documents!",
+    "documents" => array [...],
+    "route_arg" => $this->route->args["my_arg"]
+  ));
+}, array("my_arg" => "my_important_value"));
+
+// example #3: render view handling (see below example of document view, labeled `/views/document.php`)
+$this->render_view("/document/:id", "document", array("my_arg" => "my_important_value"));
+
+?>
+```
+
+`/views/document.php`
+
+```php
+<?php
+  // ... logic to fetch document ...
+?>
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document viewer</title>
+  </head>
+
+  <body>
+    <h1><?php echo $document->title; ?></h1>
+    <main>
+      <p><?php echo $this->route->args["my_arg"]; ?></p>
+      <p><?php echo $document->contents; ?></p>
+    </main>
+  </body>
+</html>
 ```
 
 ---

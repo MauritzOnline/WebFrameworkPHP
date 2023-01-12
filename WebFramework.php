@@ -517,7 +517,8 @@ class WebFramework {
   }
 
   // Start the web framework (matching route, parsing data, etc...)
-  public function start() {
+  public function start(callable|null $middleware = null) {
+    if(is_null($middleware)) $middleware = function() {};
     if(!empty($this->_options["routes_folder"])) $this->_load_routes();
     $this->route = null;
     $this->_found404 = null;
@@ -596,13 +597,16 @@ class WebFramework {
 
       // Set current route & Run found route's callback
       $this->_set_current_route($found_route);
+      call_user_func($middleware);
       $this->_run_route($found_route);
     } else {
       if($this->_found404 !== null) {
         $this->_set_current_route($this->_found404);
+        call_user_func($middleware);
         $this->_run_route($this->_found404);
       } else {
         // No matching route could be found, send default 404
+        call_user_func($middleware);
         $this->_not_found();
       }
     }

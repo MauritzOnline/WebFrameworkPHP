@@ -601,11 +601,13 @@ class WebFramework {
 
   // Auto loads routes (should not be used directly, use start())
   private function _load_routes() {
-    // Find all endpoints and require them (ignores hidden files)
-    foreach(scandir($this->_routes_folder) as $key => $endpoint) {
-      if(!str_starts_with($endpoint, ".")) {
-        if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
-          require_once($this->_routes_folder . "/" . $endpoint);
+    if(is_readable($this->_routes_folder)) {
+      // Find all endpoints and require them (ignores hidden files)
+      foreach(scandir($this->_routes_folder) as $key => $endpoint) {
+        if(!str_starts_with($endpoint, ".")) {
+          if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
+            require_once($this->_routes_folder . "/" . $endpoint);
+          }
         }
       }
     }

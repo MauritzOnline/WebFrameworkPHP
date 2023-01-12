@@ -172,16 +172,16 @@ def test_route_args(run_html_version: bool):
 
     if run_html_version:
         # Check that the response contains the expected data
-        assert '<p class="auth">1</p>' in response.text, "Missing or invalid auth in response!"
-        assert '<p class="arg1">123abc</p>' in response.text, "Missing or invalid arg1 in response!"
+        assert '<p class="arg1">1</p>' in response.text, "Missing or invalid arg1 in response!"
+        assert '<p class="arg2">123abc</p>' in response.text, "Missing or invalid arg2 in response!"
     else:
         # Check that the response JSON contains the expected data
         data = response.json()
-        assert 'auth' in data, "Missing auth in response JSON!"
-        assert data['auth'] == True, 'auth does not match the expected value "123abc"'
-
         assert 'arg1' in data, "Missing arg1 in response JSON!"
-        assert data['arg1'] == '123abc', 'arg1 does not match the expected value "123abc"'
+        assert data['arg1'] == True, 'arg1 does not match the expected value "123abc"'
+
+        assert 'arg2' in data, "Missing arg2 in response JSON!"
+        assert data['arg2'] == '123abc', 'arg2 does not match the expected value "123abc"'
 
 
 def test_view_rendering():

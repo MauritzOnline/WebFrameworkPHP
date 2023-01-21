@@ -533,10 +533,13 @@ for i in range(-1, 4):
 for i in range(0, 3):
     tests_to_run.append(partial(test_post_data, i))
 
-# Iterate over all combinations of parameter values for: test_file_upload & test_file_download
+# Iterate over all combinations of parameter values for: test_file_upload
 for stream in bool_values:
     for test_options in range(0, 5):
         tests_to_run.append(partial(test_file_upload, stream, test_options))
+
+# Iterate over all combinations of parameter values for: test_file_download
+for stream in bool_values:
     tests_to_run.append(partial(test_file_download, stream))
 
 # Iterate over all combinations of parameter values for: test_send_json

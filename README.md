@@ -723,13 +723,13 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 **Examples:**
 
 ```php
-// it's recommended to check if the file is readable first, since otherwise it will error out
-if(is_readable("hello_world.txt")) {
+// it's recommended to check if it's a file and is readable first, since otherwise it will error out
+if(is_file("hello_world.txt") && is_readable("hello_world.txt")) {
   return $this->send_file("hello_world.txt");
 }
 
-// it's recommended to check if the file is readable first, since otherwise it will error out
-if(is_readable("hello_world.txt")) {
+// it's recommended to check if it's a file and is readable first, since otherwise it will error out
+if(is_file("hello_world.txt") && is_readable("hello_world.txt")) {
   return $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 }
 ```

@@ -18,7 +18,7 @@ class WebFramework {
     "use_json_error_handler" => false, // true = will use "send_json" rather than "send" for the provided error handler
     "debug_mode" => false, // true = will print additional information when errors occur
     "include_status_code_in_sent_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
-    "use_error_log" => true // true = will by default send detailed errors to error_log()
+    "use_error_log_in_error_handler" => true // true = will by default send detailed errors to error_log()
   );
 
   private string $_script_file;
@@ -98,7 +98,7 @@ class WebFramework {
           "Line: {" . $e->getLine() . "};"
         ));
 
-        if($this->_options["use_error_log"] === true) {
+        if($this->_options["use_error_log_in_error_handler"] === true) {
           error_log("WebFrameworkPHP ERROR >> " . $error_message);
         }
 

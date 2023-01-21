@@ -10,7 +10,7 @@ $this->get("/download_file/stream", function() {
 
 $this->post("/upload_file", function() {
   try {
-    $uploaded_file = $this->move_uploaded_file("file1", "test_files", "uploaded_file");
+    $uploaded_file = $this->move_uploaded_file("file1", "test_files", array("new_file_name" => "uploaded_file"));
     $file_contents = file_get_contents($uploaded_file);
     unlink($uploaded_file);
 

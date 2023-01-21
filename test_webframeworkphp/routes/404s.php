@@ -10,4 +10,6 @@ $this->post(":404", function() {
   $this->send("404 - not found (custom POST)!", 404);
 });
 
+$this->render_view(":404", "404", [], 404, "PUT");
+
 ?>

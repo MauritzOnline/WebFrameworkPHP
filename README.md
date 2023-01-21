@@ -30,7 +30,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [Use JSON error handler](#use-json-error-handler)
   - [Debug mode](#debug-mode)
   - [Include status code in sent JSON](#include-status-code-in-sent-json)
-  - [Use `error_log`](#use-error_log)
+  - [Use `error_log` in error handler](#use-error_log-in-error-handler)
 - [Request data](#request-data)
 - [Route loading](#route-loading)
   - [Auto loading](#auto-loading)
@@ -53,6 +53,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_file()](#send_file)
 - [Moving uploaded files](#moving-uploaded-files)
   - [Exceptions](#exceptions)
+  - [Options](#options)
 - [HTML rendering](#html-rendering)
 - [View rendering](#view-rendering)
 - [Authentication](#authentication)
@@ -156,6 +157,7 @@ You can easily customize the default error handler that is provided. This error 
 
 - **E10000:** Fatal error caused by loaded routes or other custom code.
 - **E10001:** Error sent using `trigger_error`.
+- **E11000:** Error sent from `_load_routes`, caused by given `routes_folder` not being a folder or not being readable.
 - **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
 - **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
 - **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
@@ -176,7 +178,7 @@ array(
   "use_json_error_handler" => false,
   "debug_mode" => false,
   "include_status_code_in_sent_json" => true,
-  "use_error_log" => true
+  "use_error_log_in_error_handler" => true
 );
 ```
 
@@ -227,7 +229,7 @@ This option can also be used inside routes to provide more information while run
 
 Wether `send_json` and `send_json_body` should include `"status": 200` in the response body. This toggles it globally, it can always be toggled on a per call basis by passing appropriate option to `send_json` or `send_json_body`.
 
-### Use `error_log`
+### Use `error_log` in error handler
 
 Wether the default error handler function provided by WebFrameworkPHP should also use `error_log` to log more detailed errors. This can be useful if you don't want to turn on debug mode, but still want to see the more detailed errors.
 
@@ -739,17 +741,35 @@ if(is_readable("hello_world.txt")) {
 > This function moves an uploaded file to a specified location. Returns the uploaded file's path on success.
 
 ```php
-function move_uploaded_file(string $file, string $dest_folder = ".", string $new_file_name = "", string $new_file_ext = ""): string
+function move_uploaded_file(string $file, string $dest_folder = ".", array $options = array()): string
 ```
 
 ### Exceptions
 
-- If no files are found in the request, an exception with error code `0` is thrown.
-- If the uploaded file is not found under the property name provided by `$file`, an exception with error code `1` is thrown.
-- If an error occurs with the upload, an exception with error code `2` is thrown.
-- If the specified folder path by `$dest_folder` is not writeable, an exception with error code `3` is thrown.
-- If the specified `$dest_folder` is not a folder, an exception with error code `4` is thrown.
-- If the file cannot be moved, an exception with error code `5` is thrown.
+- If no files are found in the request, an exception with error code `1000` is thrown.
+- If the uploaded file is not found under the property name provided by `$file`, an exception with error code `1001` is thrown.
+- If an error occurs with the upload, an exception with error code `1002` is thrown.
+- If the uploaded file does not have a valid extension as specified with the `allowed_exts` option, an exception with error code `2000` is thrown.
+- If the uploaded file is smaller than specified with the `min_size` option, an exception with error code `2001` is thrown.
+- If the uploaded file is larger than specified with the `max_size` option, an exception with error code `2002` is thrown.
+- If the specified `$dest_folder` is not a folder or does not exist, an exception with error code `3000` is thrown.
+- If the specified folder path by `$dest_folder` is not writeable, an exception with error code `3001` is thrown.
+- If the file cannot be moved, an exception with error code `4000` is thrown.
+
+### Options
+
+> all of these options are optional.
+
+```php
+array(
+  "new_file_name" => "...", // what you want the file to be named on the server (should not include extension)
+  "new_file_ext" => "...", // what extension you want the file to have on the server
+  "allowed_exts" => array(...), // an array of strings of which extensions are allowed (should not include dot)
+  "min_size" => 0, // an integer of how small the file can be (in bytes, e.g. `1000` bytes, then no files under 1 kilobytes will be allowed)
+  "max_size" => 0, // an integer of how large the file can be (in bytes, e.g. `5 * pow(10, 6)` bytes, then no files over 5 megabytes will be allowed)
+  "remove_invalid_files" => true, // wether the file should be removed from the server if it's deemed invalid by ext or size (true by default)
+)
+```
 
 **Examples:**
 
@@ -778,7 +798,10 @@ try {
 // wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
 try {
   // moves the file uploaded under the name "cv" to the "uploaded_files" folder
-  $uploaded_file = $this->move_uploaded_file("cv", "uploaded_files", "cv-" . time()); // returns the uploaded file's path (e.g. "uploaded_files/cv-1660338149.pdf")
+  $uploaded_file = $this->move_uploaded_file("cv", "uploaded_files", array(
+    "new_file_name" => "cv-" . time(),
+    "allowed_exts" => array("pdf") // only allow PDFs
+  )); // returns the uploaded file's path (e.g. "uploaded_files/cv-1660338149.pdf")
 
   return $this->send_json_body(array(
     "status" => 200,

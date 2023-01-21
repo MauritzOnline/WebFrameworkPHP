@@ -10,6 +10,8 @@
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
 
+// TODO: add testing of "move_uploaded_file" options, add testing of "render_view" for :404
+
 class WebFramework {
   private array $_options = array(
     "routes_folder" => "routes", // which folder to search for auto-loading routes
@@ -374,22 +376,48 @@ class WebFramework {
   }
 
   // Move an uploaded file to the folder in $dest_folder
-  /* TODO: allow setting of allowed file types and max upload size.
-     Also change to use an `array $options` for `new_file_name`, `new_file_ext`, `allowed_exts`, `min_size`, `max_size`
-  */
-  public function move_uploaded_file(string $file, string $dest_folder = ".", string $new_file_name = "", string $new_file_ext = ""): string {
+  public function move_uploaded_file(string $file, string $dest_folder = ".", array $options = array()): string {
     if(empty($this->request->files)) {
-      throw new Exception("No files could be found in request!", 0);
+      throw new Exception("No files could be found in request!", 1000);
     }
   
     if(!isset($this->request->files[$file])) {
-      throw new Exception('Could not find the uploaded file under the property "' . $file . '"!', 1);
+      throw new Exception('Could not find the uploaded file under the property "' . $file . '"!', 1001);
     }
     
     $file = $this->request->files[$file];
     if($file["error"] !== UPLOAD_ERR_OK) {
-      throw new Exception("An error occurred with the upload (Error: " . $file["error"] . ")!", 2);
+      throw new Exception("An error occurred with the upload (Error: " . $file["error"] . ")!", 1002);
     }
+
+    if(!isset($options["new_file_name"]) || !is_string($options["new_file_name"])) {
+      $options["new_file_name"] = "";
+    }
+    if(!isset($options["new_file_ext"]) || !is_string($options["new_file_ext"])) {
+      $options["new_file_ext"] = "";
+    }
+    if(!isset($options["allowed_exts"]) || !is_array($options["allowed_exts"])) {
+      $options["allowed_exts"] = array();
+    }
+    if(!isset($options["min_size"]) || !is_int($options["min_size"])) {
+      $options["min_size"] = -1;
+    }
+    if(!isset($options["max_size"]) || !is_int($options["max_size"])) {
+      $options["max_size"] = -1;
+    }
+    if(!isset($options["remove_invalid_files"]) || !is_bool($options["remove_invalid_files"])) {
+      $options["remove_invalid_files"] = true;
+    }
+
+    // only allow non-empty strings
+    $options["allowed_exts"] = array_filter($options["allowed_exts"], function($ext) {
+      return is_string($ext) && trim(trim($ext, ".")) !== "";
+    });
+
+    // make extensions more consistent (removes prefix and suffix dots, makes extensions lowercase)
+    $options["allowed_exts"] = array_map(function($ext) {
+      return strtolower(trim(trim($ext, ".")));
+    }, $options["allowed_exts"]);
   
     // Get the temporary file path
     $tmp_file = $file["tmp_name"];
@@ -397,13 +425,41 @@ class WebFramework {
     $file_name = trim($file["name"]);
     $file_ext = ltrim(pathinfo($file_name, PATHINFO_EXTENSION), ".");
     $file_name = trim(basename($file_name, "." . $file_ext));
+    $file_size = filesize($tmp_file);
 
-    $new_file_name = trim($new_file_name);
+    if(count($options["allowed_exts"]) > 0) {
+      if(!in_array(strtolower($file_ext), $options["allowed_exts"])) {
+        if($options["remove_invalid_files"] === true) {
+          $this->_delete_temp_uploaded_file($tmp_file);
+        }
+        throw new Exception("Uploaded file does not have an allowed extension!", 2000);
+      }
+    }
+
+    if($options["min_size"] > 0) {
+      if($file_size < $options["min_size"]) {
+        if($options["remove_invalid_files"] === true) {
+          $this->_delete_temp_uploaded_file($tmp_file);
+        }
+        throw new Exception("Uploaded file is too small!", 2001);
+      }
+    }
+
+    if($options["max_size"] > 0) {
+      if($file_size > $options["max_size"]) {
+        if($options["remove_invalid_files"] === true) {
+          $this->_delete_temp_uploaded_file($tmp_file);
+        }
+        throw new Exception("Uploaded file is too large!", 2002);
+      }
+    }
+
+    $new_file_name = trim($options["new_file_name"]);
     if($new_file_name !== "") {
       $file_name = $new_file_name;
     }
 
-    $new_file_ext = trim($new_file_ext);
+    $new_file_ext = trim($options["new_file_ext"]);
     if($new_file_ext !== "") {
       $file_ext = ltrim($new_file_ext, ".");
     }
@@ -416,11 +472,11 @@ class WebFramework {
     $folder_path = ($dest_folder !== "" ? $dest_folder : ".");
     $folder_path = rtrim($folder_path, "/");
 
-    if(!is_writable($folder_path)) {
-      throw new Exception("Could not write to given folder path (" . $folder_path . ")!", 3);
-    }
     if(!is_dir($folder_path)) {
-      throw new Exception("Given destination is not a folder (" . $folder_path . ")!", 4);
+      throw new Exception("Given destination is either not a folder or does not exist (" . $folder_path . ")!", 3000);
+    }
+    if(!is_writable($folder_path)) {
+      throw new Exception("Could not write to given folder path (" . $folder_path . ")!", 3001);
     }
   
     // Set the target file path
@@ -430,7 +486,7 @@ class WebFramework {
     if (move_uploaded_file($tmp_file, $target_file)) {
       return $target_file;
     } else {
-      throw new Exception("Failed to move uploaded file!", 5);
+      throw new Exception("Failed to move uploaded file!", 4000);
     }
   }
 
@@ -732,6 +788,15 @@ class WebFramework {
       return substr_replace($haystack, $replace, $pos, strlen($needle));
     } else {
       return $haystack;
+    }
+  }
+
+  // Deletes a temporary file (do NOT use this function directly, its only suppose to be used by `move_uploaded_file`)
+  private function _delete_temp_uploaded_file(string $file_path) {
+    if(is_file($file_path) && is_writable($file_path)) {
+      if(!unlink($file_path)) {
+        error_log('WebFrameworkPHP WARNING >> Failed to delete temp uploaded file: "' . $file_path . '"');
+      }
     }
   }
 }

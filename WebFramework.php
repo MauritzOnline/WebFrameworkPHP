@@ -329,7 +329,8 @@ class WebFramework {
   }
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server)
-  // TODO: send back an error that the dev can check, to then send their own error instead (maybe use throw like move_uploaded_file?)
+  // TODO: send back an error that the dev can check, so that they can choose how to handle the file not being readable, etc. (maybe use throw like move_uploaded_file?)
+  // This would solve the issue of the dev having to run "is_file" and "is_readable" before running "send_file" to make sure an error isn't sent to the user.
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
     if(!is_file($file_path)) {
       $this->_send_error(20100, 'send_file(): Either no file could be found at the provided file path: "' . $file_path . '", or the provided path is not a file!');

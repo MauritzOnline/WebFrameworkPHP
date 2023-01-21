@@ -73,7 +73,7 @@ A small and simple web framework built using PHP. Handles routing and different 
 
 Go download version [0.2.0](https://github.com/MauritzOnline/WebFrameworkPHP/releases/tag/v0.2.0) _(latest release)_.
 
-> The `main` branch can also be downloaded, but may include code that hasn't been properly tested yet.
+> The `main` branch can also be downloaded, but may include code that hasn't been properly tested yet or changes that break old code. I really recommend sticking to releases rather than using the `main` branch.
 
 Add `WebFramework.php` to your project and require it in `index.php`. To allow for routing a `.htaccess` file is used for Apache and `nginx.conf` for Nginx _(or `sites-available/DOMAIN`)_.
 

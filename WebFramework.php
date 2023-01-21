@@ -14,10 +14,10 @@ class WebFramework {
   private array $_options = array(
     "routes_folder" => "routes", // which folder to search for auto-loading routes
     "views_folder" => "views", // which folder to search for views used by "render_view"
-    "provide_error_handler" => true, // true = a default error handler will be provided (otherwise the default PHP one will be used)
+    "handle_php_errors" => true, // true = a default error handler will be provided (otherwise the default PHP one will be used)
     "use_json_error_handler" => false, // true = will use "send_json" rather than "send" for the provided error handler
     "debug_mode" => false, // true = will print additional information when errors occur
-    "include_status_code_in_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
+    "include_status_code_in_sent_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
     "use_error_log" => true // true = will by default send detailed errors to error_log()
   );
 
@@ -30,8 +30,8 @@ class WebFramework {
   private $_error_handler;
   private array $_middleware = array();
 
-  public object $request; // current request data
-  public object|null $route = null; // this get overwritten by start()
+  public object $request; // current request data, this gets written by the constructor
+  public object|null $route = null; // this gets overwritten by start()
   public bool $debug_mode = false; // this gets overwritten by the constructor
 
   public function __construct(array $options) {
@@ -71,7 +71,7 @@ class WebFramework {
     }
     $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
 
-    if($this->_options["provide_error_handler"] === true) {
+    if($this->_options["handle_php_errors"] === true) {
       // Default error handler
       if($this->_options["use_json_error_handler"] === true) {
         $this->_error_handler = function($error_code, $error_message) {
@@ -271,7 +271,7 @@ class WebFramework {
   public function send_json(object|array $data, int $status_code = 200, bool|null $include_status_code = null) {
     $data = (object) $data;
     if($include_status_code === null) {
-      $include_status_code = $this->_options["include_status_code_in_json"];
+      $include_status_code = $this->_options["include_status_code_in_sent_json"];
     }
 
     $final_data = $data;
@@ -299,7 +299,7 @@ class WebFramework {
     $status_code = 200;
 
     if($include_status_code === null) {
-      $include_status_code = $this->_options["include_status_code_in_json"];
+      $include_status_code = $this->_options["include_status_code_in_sent_json"];
     }
 
     if($has_status_code) {
@@ -371,6 +371,9 @@ class WebFramework {
   }
 
   // Move an uploaded file to the folder in $dest_folder
+  /* TODO: allow setting of allowed file types and max upload size.
+     Also change to use an `array $options` for `new_file_name`, `new_file_ext`, `allowed_exts`, `min_size`, `max_size`
+  */
   public function move_uploaded_file(string $file, string $dest_folder = ".", string $new_file_name = "", string $new_file_ext = ""): string {
     if(empty($this->request->files)) {
       throw new Exception("No files could be found in request!", 0);

@@ -26,10 +26,10 @@ A small and simple web framework built using PHP. Handles routing and different 
 - [Constructor options](#constructor-options)
   - [Routes folder](#routes-folder)
   - [Views folder](#views-folder)
-  - [Provide error handler](#provide-error-handler)
+  - [Handle PHP errors](#handle-php-errors)
   - [Use JSON error handler](#use-json-error-handler)
   - [Debug mode](#debug-mode)
-  - [Include status code in JSON output](#include-status-code-in-json-output)
+  - [Include status code in sent JSON](#include-status-code-in-sent-json)
   - [Use `error_log`](#use-error_log)
 - [Request data](#request-data)
 - [Route loading](#route-loading)
@@ -172,10 +172,10 @@ You can easily customize the default error handler that is provided. This error 
 array(
   "routes_folder" => "routes",
   "views_folder" => "views",
-  "provide_error_handler" => true,
+  "handle_php_errors" => true,
   "use_json_error_handler" => false,
   "debug_mode" => false,
-  "include_status_code_in_json" => true,
+  "include_status_code_in_sent_json" => true,
   "use_error_log" => true
 );
 ```
@@ -185,7 +185,7 @@ array(
 ```php
 $webFramework = new WebFramework(array(
   "debug_mode" => true,
-  "include_status_code_in_json" => false
+  "include_status_code_in_sent_json" => false
 ));
 ```
 
@@ -197,9 +197,9 @@ Will change the folder used for auto-loading routes.
 
 Will change the folder that `render_view()` uses to find view files.
 
-### Provide error handler
+### Handle PHP errors
 
-Wether WebFrameworkPHP should provide a default error handler function, if none is provided then the default PHP error handling is used.
+Wether WebFrameworkPHP should handle PHP exceptions and errors _(a default error handler function is also provided)_, if disabled then the default PHP error handling is used. This must be turned on if you want to use `set_custom_error_handler()`.
 
 ### Use JSON error handler
 
@@ -223,13 +223,15 @@ Can also be activated using `$webFramework->debug_mode = true;` _(must be run be
 
 This option can also be used inside routes to provide more information while running in debug mode.
 
-### Include status code in JSON output
+### Include status code in sent JSON
 
-Wether `send_json` and `send_json_body` should include the `"status": 200` in the response body. This toggles it globally, it can always be toggled on a per call basis by passing appropriate option to `send_json` or `send_json_body`.
+Wether `send_json` and `send_json_body` should include `"status": 200` in the response body. This toggles it globally, it can always be toggled on a per call basis by passing appropriate option to `send_json` or `send_json_body`.
 
 ### Use `error_log`
 
 Wether the default error handler function provided by WebFrameworkPHP should also use `error_log` to log more detailed errors. This can be useful if you don't want to turn on debug mode, but still want to see the more detailed errors.
+
+> Error is sent to PHP's system logger, using the Operating System's system logging mechanism or a file, depending on what the [error_log](https://www.php.net/manual/en/errorfunc.configuration.php#ini.error-log) configuration directive is set to. An option to change this might be added in the future.
 
 ---
 
@@ -253,7 +255,7 @@ $this->request = (object) array(
 );
 ```
 
-**Examples:**
+**Example:**
 
 ```bash
 curl -X POST 'https://example.com/api/note/12345678/?type=sticky'\
@@ -269,7 +271,7 @@ $this->post("/note/:id", function() {
   $this->request->query["type"]; // "sticky" (can be missing, using isset() before accessing is recommended)
   $this->request->body["title"]; // "My sticky note" (can be missing, using isset() before accessing is recommended)
   $this->request->body["contents"]; // "Remember Sunday" (can be missing, using isset() before accessing is recommended)
-  $this->send("Note added");
+  return $this->send("Note added");
 }
 ```
 
@@ -277,7 +279,7 @@ $this->post("/note/:id", function() {
 
 ## Route loading
 
-> All routing is done by placing PHP files inside either the default `routes` folder, or by choosing your own folder in the constructor. Auto loading of routes can be disabled by passing an empty string to the constructor _(e.g. `""`)_. Auto loading can used together with manual loading of additional routes.
+> All routing is done by placing PHP files inside either the default `routes` folder, or by choosing your own folder in the constructor options. Auto loading of routes can be disabled by passing an empty string to the constructor option `routes_folder` _(e.g. `"routes_folder" => ""`)_. Auto loading can used together with manual loading of additional routes.
 
 ### Auto loading
 
@@ -300,10 +302,9 @@ $webFramework->start();
 <?php
 
 $this->get("/demo", function() {
-  $this->send_json_body(array(
-    "status" => 200,
+  return $this->send_json(array(
     "message" => "Hello world!",
-  ));
+  ), 200);
 });
 
 // ... additional paths ...
@@ -320,7 +321,9 @@ $this->get("/demo", function() {
 
 require_once("./classes/WebFramework.php");
 
-$webFramework = new WebFramework(""); // "" => disables auto loading
+$webFramework = new WebFramework(array(
+  "routes_folder" => "" // disables auto loading
+));
 require_once("./manual_route.php");
 $webFramework->start();
 
@@ -333,7 +336,7 @@ $webFramework->start();
 <?php
 
 $webFramework->get("/manual", function() use($webFramework) {
-  $webFramework->send_json_body(array(
+  return $webFramework->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));
@@ -355,7 +358,7 @@ $webFramework->get("/manual", function() use($webFramework) {
 
 // example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
 $this->all("/info", function() {
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "...",
   ));
@@ -365,7 +368,7 @@ $this->all("/info", function() {
 $this->get("/document", function() {
   // ... documents ...
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "Fetched all documents!",
     "documents" => array [...],
@@ -378,7 +381,7 @@ $this->get("/document/:id", function() {
 
   // ... fetch document ...
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "Fetched single document!",
     "document" => object {...},
@@ -392,7 +395,7 @@ $this->post("/document", function() {
 
   // ... create document ...
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "New document added!",
     "id" => $document_id
@@ -413,7 +416,7 @@ $this->post("/document", function() {
 
 // example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
 $this->all("/info", function() {
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "...",
     "route_arg" => (isset($this->route->args["my_arg"]) ? $this->route->args["my_arg"] : "")
@@ -424,7 +427,7 @@ $this->all("/info", function() {
 $this->get("/document", function() {
   // ... documents ...
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "Fetched all documents!",
     "documents" => array [...],
@@ -468,7 +471,7 @@ $this->render_view("/document/:id", "document", array("my_arg" => "my_important_
 
 ## Global middleware
 
-> Allows to do check before any route runs, this can be useful for authentication checks, using any of the `send` methods will stop execution of any routes. Route specific middleware might be supported in the future, but a similar function can already be accomplished by checking the value of `$webFramework->route->uri`.
+> Allows to run code before any route runs, this can be useful for authentication checks, using any of the `send` methods will stop execution of any routes. Route specific middleware might be supported in the future, but a similar function can already be accomplished by checking the value of `$webFramework->route->uri`.
 
 > A global middleware is added by calling the `add_middleware()` method. Multiple middleware can be added, but they must all be added before the call to `start()`.
 
@@ -478,6 +481,7 @@ $this->render_view("/document/:id", "document", array("my_arg" => "my_important_
 <?php
 
 require_once("./classes/WebFramework.php");
+require_once("./classes/Auth.php");
 
 $webFramework = new WebFramework();
 $webFramework->parse_auth(); // this can either be placed here or inside the middleware (just make sure do not add it in two places) [recommended]
@@ -490,10 +494,10 @@ $webFramework->add_middleware(function() use($webFramework) {
     $webFramework->parse_auth(); // this can either be placed here or anytime before the adding of this middleware (just make sure do not add it in two places)
 
     if($webFramework->request->token === null) {
-      $webFramework->send("Missing valid auth token!", 403); // stops any route from being run
+      return $webFramework->send("Missing valid auth token!", 403); // stops any route from being run
     }
-    if($webFramework->request->token !== "my_valid_secret_token") {
-      $webFramework->send("Invalid auth token!", 403); // stops any route from being run
+    if(Auth::is_valid_token($webFramework->request->token) === false) {
+      return $webFramework->send("Invalid auth token!", 403); // stops any route from being run
     }
   }
 });
@@ -509,7 +513,7 @@ $webFramework->start();
 
 ### redirect()
 
-> Redirection function, allows you to redirect the user to a different URL. The status code is set to 301 for permanent redirects and 302 for temporary redirects.
+> Redirection function, allows you to redirect the user to a different URL. The status code is set to `301` for permanent redirects and `302` for temporary redirects.
 
 ```php
 function redirect(string $redirect_uri, bool $permanent = false)
@@ -525,7 +529,7 @@ $this->redirect("https://example.com", true);
 
 ### local_redirect()
 
-> Redirection function, allows you to redirect the user to a local route. The status code is set to 301 for permanent redirects and 302 for temporary redirects. Local redirection cannot escape from the root URI. As such if the framework isn't running from the root of the domain then the redirection will always be prefixed with the folder it's running inside.
+> Redirection function, allows you to redirect the user to a local route. The status code is set to `301` for permanent redirects and `302` for temporary redirects. Local redirection cannot escape from the root URI. As such if the framework isn't running from the root of the domain then the redirection will always be prefixed with the folder it's running inside.
 
 ```php
 function local_redirect(string $route_str, bool $permanent = false)
@@ -708,7 +712,7 @@ $this->send_json_body(array(
 
 ### send_file()
 
-> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
+> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported and a Content-Type isn't provided using `$content_type`)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
 
 ```php
 function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
@@ -719,12 +723,12 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 ```php
 // it's recommended to check if the file is readable first, since otherwise it will error out
 if(is_readable("hello_world.txt")) {
-  $this->send_file("hello_world.txt");
+  return $this->send_file("hello_world.txt");
 }
 
 // it's recommended to check if the file is readable first, since otherwise it will error out
 if(is_readable("hello_world.txt")) {
-  $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+  return $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
 }
 ```
 
@@ -750,10 +754,31 @@ function move_uploaded_file(string $file, string $dest_folder = ".", string $new
 **Examples:**
 
 ```php
+// Example 1: move the file uploaded with data field "cv", keeping the original file name.
 // wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
 try {
   // moves the file uploaded under the name "cv" to the "uploaded_files" folder
   $uploaded_file = $this->move_uploaded_file("cv", "uploaded_files"); // returns the uploaded file's path (e.g. "uploaded_files/John Doe - CV.pdf")
+
+  return $this->send_json_body(array(
+    "status" => 200,
+    "message" => "Thank you for uploading your CV.",
+    "uploaded_path" => $uploaded_file
+  ));
+} catch(Exception $err) {
+  return $this->send_json_body(array(
+    "status" => 400,
+    "error" => $err->getMessage(),
+    "error_code" => $err->getCode()
+  ));
+}
+
+
+// Example 2: move the file uploaded with data field "cv", setting the file name to the current Unix Epoch.
+// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+try {
+  // moves the file uploaded under the name "cv" to the "uploaded_files" folder
+  $uploaded_file = $this->move_uploaded_file("cv", "uploaded_files", "cv-" . time()); // returns the uploaded file's path (e.g. "uploaded_files/cv-1660338149.pdf")
 
   return $this->send_json_body(array(
     "status" => 200,
@@ -994,21 +1019,21 @@ $webFramework->start();
 
 You can easily customize the provided 404 response for any HTTP method by settings the route URI to: `:404`. Customization can be done on a per HTTP method way, or for all methods using `all()`.
 
-> Custom 404's can also use the `render_html()` method for rendering more complex pages.
+> Custom 404's can also use the `render_html()` and `render_view()` methods for rendering more complex pages.
 
-**Example:**
+**Examples:**
 
 ```php
 <?php
 
 // example #1: special "ALL" request handling (will handle GET, POST, PUT, etc.)
 $this->all(":404", function() {
-  $this->send("No route found!", 404);
+  return $this->send("No route found!", 404);
 });
 
 // example #2: GET request handling
 $this->get(":404", function() {
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 404,
     "message" => "No route found!",
   ));
@@ -1016,7 +1041,7 @@ $this->get(":404", function() {
 
 // example #3: POST request handling
 $this->post(":404", function() {
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 404,
     "message" => "No route found!",
   ));
@@ -1031,9 +1056,11 @@ $this->post(":404", function() {
 
 You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
 
-> Debug mode can be turned on to get more detailed error messages.
+> Error handling can also be disabled in the constructor, e.g. `$webFramework = new WebFramework(array("handle_php_errors" => false));`.
 
-> Error handling can also be disabled in the constructor, e.g. `$webFramework = new WebFramework("routes", false);`.
+> The `handle_php_errors` option cannot be disabled if you want to use a custom error handler with `set_custom_error_handler`. If `handle_php_errors` is disabled then your custom error handler will never be called. If `handle_php_errors` is disabled you can still set a custom exception and error handler using native PHP.
+
+> Debug mode can be turned on to get more detailed error messages.
 
 **Example:**
 
@@ -1044,8 +1071,9 @@ $webFramework = new WebFramework(array(
   "debug_mode" => true // use this if you want more detailed messages (not recommended for production)
 ));
 
+// must be called before start()
 $webFramework->set_custom_error_handler(function(int $error_code, string $error_message) use($webFramework) {
-  $webFramework->send_json_body(array(
+  return $webFramework->send_json_body(array(
     "status" => 500,
     "message" => "Something went wrong, please try again later",
     "error" => array(
@@ -1054,6 +1082,8 @@ $webFramework->set_custom_error_handler(function(int $error_code, string $error_
     )
   ));
 });
+
+$webFramework->start();
 
 ?>
 ```
@@ -1064,7 +1094,7 @@ $webFramework->set_custom_error_handler(function(int $error_code, string $error_
 
 You can send custom HTTP headers either for all routes or on a per route basis.
 
-**Example all routes:**
+**Example, all routes:**
 
 ```php
 <?php
@@ -1081,7 +1111,7 @@ $webFramework->start();
 ?>
 ```
 
-**Example one routes:**
+**Example, one routes:**
 
 ```php
 <?php
@@ -1090,7 +1120,7 @@ $this->get("/hello", function() {
   // Example HTTP header (will be activated for this route only)
   header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));
@@ -1104,6 +1134,8 @@ $this->get("/hello", function() {
 ## Helmet
 
 > This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.
+
+> This can also be used on a per route basis, by calling it at the start of a route the same way that custom headers are added in the above section.
 
 **Example:**
 
@@ -1123,11 +1155,11 @@ $webFramework->start();
 
 ## CORS
 
-Implementing CORS handling is not something I feel is necessary. The point of this framework is to only provide what is necessary and potential security benefits. As such if you want to add CORS handling you can add it to all loaded routes by adding it above your call to `start()`. Also since CORS can be handled in various ways, implementing it would be counter productive.
+Implementing CORS handling is not something I feel is necessary. The point of this framework is to only provide what is necessary and potential security benefits. As such if you want to add CORS handling you can add it to all loaded routes by adding it above your call to `start()` or using a global middleware. Also since CORS can be handled in various ways, implementing it would be counter productive.
 
-> CORS handling can also be added on a per route basis. If this is done then it has to be added before `send()`, `send_json()`, `send_json_body()` or `render_html()`.
+> CORS handling can also be added on a per route basis. If this is done then it has to be added before `send()`, `send_json()`, `send_json_body()`, `send_file()`.
 
-**Example all routes:**
+**Example, all routes:**
 
 ```php
 <?php
@@ -1145,7 +1177,7 @@ $webFramework->start();
 ?>
 ```
 
-**Example one routes:**
+**Example, one routes:**
 
 ```php
 <?php
@@ -1155,7 +1187,7 @@ $this->get("/hello", function() {
   header("Access-Control-Allow-Origin: *");
   header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
 
-  $this->send_json_body(array(
+  return $this->send_json_body(array(
     "status" => 200,
     "message" => "Hello world!",
   ));

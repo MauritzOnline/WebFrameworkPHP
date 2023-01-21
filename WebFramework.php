@@ -217,7 +217,7 @@ class WebFramework {
       $method = "GET";
     }
 
-    if(is_readable($view_file)) {
+    if(is_file($view_file) && is_readable($view_file)) {
       $route_callback = function() use($view_file) { require_once($view_file); };
       $this->_add_route(strtoupper($method), $route_str, $route_callback, array_replace($route_args, array(
         "__route_options" => array(
@@ -226,7 +226,7 @@ class WebFramework {
         )
       )));
     } else {
-      $this->_send_error(50000, 'render_view(): Given view file "' . htmlspecialchars($view_file) . '" is not readable!');
+      $this->_send_error(50000, 'render_view(): Given view file "' . $view_file . '" is either not a file or is not readable!');
     }
   }
 
@@ -258,7 +258,7 @@ class WebFramework {
   // Sends a response to the client
   public function send(string $data, int $status_code = 200, string $content_type = "text/plain") {
     if($status_code < 100 || $status_code > 599) {
-      $this->_send_error(20001, 'send(): Given HTTP status code "' . htmlspecialchars($status_code) . '" is not in valid range (100-599)!');
+      $this->_send_error(20001, 'send(): Given HTTP status code "' . $status_code . '" is not in valid range (100-599)!');
     }
 
     http_response_code($status_code);
@@ -330,8 +330,11 @@ class WebFramework {
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server) [this assumes the file exists, please make sure it does]
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
+    if(!is_file($file_path)) {
+      $this->_send_error(20100, 'send_file(): Either no file could be found at the provided file path: "' . $file_path . '", or the provided path is not a file!');
+    }
     if(!is_readable($file_path)) {
-      $this->_send_error(20100, 'send_file(): Provided file path "' . htmlspecialchars($file_path) . '" is not readable!');
+      $this->_send_error(20100, 'send_file(): Provided file path "' . $file_path . '" is not readable!');
     }
 
     if($download_file_name === null || trim($download_file_name) === "") {
@@ -591,7 +594,7 @@ class WebFramework {
             $obj_body = json_decode(file_get_contents("php://input"), true);
             $this->request->body = (isset($obj_body) && !empty($obj_body) ? $obj_body : array());
           } catch(Exception $error) {
-            error_log("Failed to decode JSON body in request!");
+            error_log("WebFrameworkPHP WARNING >> Failed to decode JSON body in request!");
           }
         }
       }
@@ -669,7 +672,7 @@ class WebFramework {
     }
 
     call_user_func($this->_error_handler, $error_code, $error_message);
-    error_log("An internal error occurred in WebFrameworkPHP (E" . $error_code . ")!");
+    error_log("WebFrameworkPHP ERROR >> An internal error occurred in WebFrameworkPHP (E" . $error_code . ")!");
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)
@@ -708,7 +711,7 @@ class WebFramework {
 
   // Auto loads routes (should not be used directly, use start())
   private function _load_routes() {
-    if(is_readable($this->_options["routes_folder"])) {
+    if(is_dir($this->_options["routes_folder"]) && is_readable($this->_options["routes_folder"])) {
       // Find all endpoints and require them (ignores hidden files)
       foreach(scandir($this->_options["routes_folder"]) as $key => $endpoint) {
         if(!str_starts_with($endpoint, ".")) {
@@ -717,6 +720,8 @@ class WebFramework {
           }
         }
       }
+    } else {
+      $this->_send_error(11000, 'Given routes folder "' . $this->_options["routes_folder"] . '" is either not a folder or is not readable!');
     }
   }
 

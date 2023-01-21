@@ -6,7 +6,10 @@ from functools import partial
 
 # Set the global API URL
 API_URL = 'http://127.0.0.1:47813/WebFrameworkPHP/test_webframeworkphp'
-FILE_TO_UPLOAD = "test_webframeworkphp/test_files/to_upload.txt"
+FILE_TO_UPLOAD_VALID = "test_webframeworkphp/test_files/to_upload-valid.txt"
+FILE_TO_UPLOAD_INVALID_EXT = "test_webframeworkphp/test_files/to_upload-invalid_ext.md"
+FILE_TO_UPLOAD_TOO_SMALL = "test_webframeworkphp/test_files/to_upload-too_small.txt"
+FILE_TO_UPLOAD_TOO_BIG = "test_webframeworkphp/test_files/to_upload-too_big.txt"
 FILE_TO_SAVE = "test_webframeworkphp/test_files/downloaded.txt"
 
 # Define the regex pattern to match the string representation of a function
@@ -35,7 +38,7 @@ def test_404(mode: int):
     global current_test_status_code
 
     assert mode in [
-        0, 1, 2], 'Invalid mode passed to "test_404" function (valid ones: 0, 1, 2)!'
+        0, 1, 2, 3], 'Invalid mode passed to "test_404" function (valid ones: 0, 1, 2, 3)!'
 
     response = None
     base_url = f'{API_URL}/should_not_exist'
@@ -47,6 +50,8 @@ def test_404(mode: int):
             response = requests.post(base_url)
         case 2:
             response = requests.delete(base_url)
+        case 3:
+            response = requests.put(base_url)
 
     # Check that response has ben received
     assert response != None, "Response not received!"
@@ -65,6 +70,8 @@ def test_404(mode: int):
             assert response.text == '404 - not found (custom POST)!', "Response did not match the expected text"
         case 2:
             assert response.text == '404 - not found (custom ALL)!', "Response did not match the expected text"
+        case 3:
+            assert '<p>Hello <strong>HTML render_view() 404</strong> here!</p>' in response.text, "Response did not contain the expected text"
 
 
 def test_uri_params(include_ending_slash: bool, include_url_query: bool, include_second_url_param: bool, run_html_version: bool):
@@ -342,22 +349,38 @@ def test_post_data(data_type: int):
     assert response.json() == data, "Response does not contain the expected values!"
 
 
-def test_file_upload(stream: bool):
+def test_file_upload(stream: bool, test_option: int):
     global current_test_response
     global current_test_status_code
 
+    assert test_option in [
+        0, 1, 2, 3, 4], 'Invalid "test_option" passed to "test_file_upload" function (valid ones: 0, 1, 2, 3)!'
+
+    file_to_upload = FILE_TO_UPLOAD_VALID
+    base_url = f'{API_URL}/upload_file'
     file_contents = "INVALID"
 
-    with open(FILE_TO_UPLOAD, "r") as file:
+    if test_option > 0:
+        base_url += "/options"
+
+        match test_option:
+            case 2:
+                file_to_upload = FILE_TO_UPLOAD_INVALID_EXT
+            case 3:
+                file_to_upload = FILE_TO_UPLOAD_TOO_SMALL
+            case 4:
+                file_to_upload = FILE_TO_UPLOAD_TOO_BIG
+
+    with open(file_to_upload, "r") as file:
         file_contents = file.read()
 
+    file_basename = os.path.basename(file_to_upload)
     files_data = {
         "field1": (None, "123abc"),
-        "file1": ("to_upload.txt", open(FILE_TO_UPLOAD, "rb"))
+        "file1": (file_basename, open(file_to_upload, "rb"))
     }
 
-    response = requests.post(
-        f'{API_URL}/upload_file', files=files_data, stream=stream)
+    response = requests.post(base_url, files=files_data, stream=stream)
     current_test_response = response.text
     current_test_status_code = response.status_code
 
@@ -366,9 +389,27 @@ def test_file_upload(stream: bool):
 
     files_data["field1"] = files_data["field1"][1]
     files_data["file1"] = file_contents
-    files_data["uploaded_file"] = "test_files/uploaded_file.txt"
+    files_data["uploaded_file"] = f'test_files/uploaded/{file_basename}'
 
-    # print(f"Response: \"{response.json()}\", Expected: \"{files_data}\"")
+    if test_option == 1:
+        files_data["uploaded_file"] = "test_files/uploaded/uploaded_file.md"
+    elif test_option > 1:
+        match test_option:
+            case 2:
+                files_data = {
+                    "error": "Uploaded file does not have an allowed extension!"
+                }
+            case 3:
+                files_data = {
+                    "error": "Uploaded file is too small!"
+                }
+            case 4:
+                files_data = {
+                    "error": "Uploaded file is too large!"
+                }
+
+    # print(f"Response: \"{response.json()}\"\n\n")
+    # print(f"Expected: \"{files_data}\"")
 
     # Check that the response contains the expected data
     assert response.json() == files_data, "Response does not contain the expected values!"
@@ -463,7 +504,7 @@ status_code_values = [200, 400, 404, 500]
 
 # ============================== Start of test adding ==============================
 # Iterate over all combinations of parameter values for: test_404
-for i in range(0, 3):
+for i in range(0, 4):
     tests_to_run.append(partial(test_404, i))
 
 # Iterate over all combinations of parameter values for: test_uri_params
@@ -494,7 +535,8 @@ for i in range(0, 3):
 
 # Iterate over all combinations of parameter values for: test_file_upload & test_file_download
 for stream in bool_values:
-    tests_to_run.append(partial(test_file_upload, stream))
+    for test_options in range(0, 5):
+        tests_to_run.append(partial(test_file_upload, stream, test_options))
     tests_to_run.append(partial(test_file_download, stream))
 
 # Iterate over all combinations of parameter values for: test_send_json

@@ -11,6 +11,7 @@
 // TODO: utilize "_send_error" more
 
 class WebFramework {
+  // TODO: add regex route mode?
   private array $_options = array(
     "routes_folder" => "routes", // which folder to search for auto-loading routes
     "views_folder" => "views", // which folder to search for views used by "render_view"
@@ -18,7 +19,8 @@ class WebFramework {
     "use_json_error_handler" => false, // true = will use "send_json" rather than "send" for the provided error handler
     "debug_mode" => false, // true = will print additional information when errors occur
     "include_status_code_in_sent_json" => true, // true = will add ["status"] to all JSON output sent using "send_json"
-    "use_error_log_in_error_handler" => true // true = will by default send detailed errors to error_log()
+    "use_error_log_in_error_handler" => true, // true = will by default send detailed errors to error_log()
+    "always_use_helmet" => true // true = will run "helmet" for every response
   );
 
   private string $_script_file;
@@ -493,29 +495,39 @@ class WebFramework {
 
   /* Activates the following HelmetJS defaults [must be called before start()]:
       - contentSecurityPolicy
+      - crossOriginEmbedderPolicy
+      - crossOriginOpenerPolicy
+      - crossOriginResourcePolicy
+      - originAgentCluster
       - dnsPrefetchControl
       - expectCt
       - frameguard
-      - hidePoweredBy
       - hsts
       - ieNoOpen
       - noSniff
       - permittedCrossDomainPolicies
       - referrerPolicy
       - xssFilter
+      - hidePoweredBy
   */
   public function helmet() {
-    header("Content-Security-Policy: default-src 'self'; base-uri 'self'; block-all-mixed-content; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests");
-    header("X-DNS-Prefetch-Control: off");
-    header("Expect-CT: max-age=0");
-    header("X-Frame-Options: SAMEORIGIN");
-    header("Strict-Transport-Security: max-age=15552000; includeSubDomains");
-    header("X-Download-Options: noopen");
-    header("X-Content-Type-Options: nosniff");
-    header("X-Permitted-Cross-Domain-Policies: none");
-    header("Referrer-Policy: no-referrer");
-    header("X-XSS-Protection: 0");
-    header_remove("X-Powered-By");
+    header("Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests"); // contentSecurityPolicy
+
+    header("Cross-Origin-Embedder-Policy: require-corp"); // crossOriginEmbedderPolicy
+    header("Cross-Origin-Opener-Policy: same-origin"); // crossOriginOpenerPolicy
+    header("Cross-Origin-Resource-Policy: same-origin"); // crossOriginResourcePolicy
+    header("Origin-Agent-Cluster: ?1"); // originAgentCluster
+
+    header("X-DNS-Prefetch-Control: off"); // dnsPrefetchControl
+    header("Expect-CT: max-age=0"); // expectCt
+    header("X-Frame-Options: SAMEORIGIN"); // frameguard
+    header("Strict-Transport-Security: max-age=15552000; includeSubDomains"); // hsts
+    header("X-Download-Options: noopen"); // ieNoOpen
+    header("X-Content-Type-Options: nosniff"); // noSniff
+    header("X-Permitted-Cross-Domain-Policies: none"); // permittedCrossDomainPolicies
+    header("Referrer-Policy: no-referrer"); // referrerPolicy
+    header("X-XSS-Protection: 0"); // xssFilter
+    header_remove("X-Powered-By"); // hidePoweredBy
   }
 
   // Parse "Basic base64(username:password)" & "Bearer token" provided by HTTP requests and if valid adds it to $this->request->credentials & $this->request->token
@@ -579,6 +591,7 @@ class WebFramework {
 
   // Start the web framework (matching route, parsing data, etc...)
   public function start() {
+    if($this->_options["always_use_helmet"] === true) $this->helmet();
     if(!empty($this->_options["routes_folder"])) $this->_load_routes();
     $this->route = null;
     $this->_found404 = null;

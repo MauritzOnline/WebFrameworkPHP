@@ -52,6 +52,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_json()](#send_json)
   - [send_json_body()](#send_json_body)
   - [send_file()](#send_file)
+  - [Exceptions](#exceptions)
 - [Moving uploaded files](#moving-uploaded-files)
   - [Exceptions](#exceptions)
   - [Options](#options)
@@ -720,23 +721,42 @@ $this->send_json_body(array(
 
 ### send_file()
 
-> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an error if it's not supported and a Content-Type isn't provided using `$content_type`)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
+> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an exception if it's not supported and a Content-Type isn't provided using `$content_type`)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
 
 ```php
 function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
 ```
 
+### Exceptions
+
+- If no file is found at the provided `$file_path`, an exception with error code `1000` is thrown.
+- If the file provided by `$file_path` is not readable, an exception with error code `1001` is thrown.
+- If no `$content_type` is provided and the `fileinfo` _(finfo)_ extension isn't loaded, an exception with error code `2000` is thrown.
+- If the file provided by `$file_path` failed to output using `readfile`, an exception with error code `3000` is thrown.
+
 **Examples:**
 
 ```php
-// it's recommended to check if it's a file and is readable first, since otherwise it will error out
-if(is_file("hello_world.txt") && is_readable("hello_world.txt")) {
+// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+try {
   return $this->send_file("hello_world.txt");
+} catch(Exception $err) {
+  return $this->send_json_body(array(
+    "status" => 500,
+    "error" => $err->getMessage(),
+    "error_code" => $err->getCode()
+  ));
 }
 
-// it's recommended to check if it's a file and is readable first, since otherwise it will error out
-if(is_file("hello_world.txt") && is_readable("hello_world.txt")) {
+// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+try {
   return $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+} catch(Exception $err) {
+  return $this->send_json_body(array(
+    "status" => 500,
+    "error" => $err->getMessage(),
+    "error_code" => $err->getCode()
+  ));
 }
 ```
 

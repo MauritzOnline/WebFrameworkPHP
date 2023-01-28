@@ -31,6 +31,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [Debug mode](#debug-mode)
   - [Include status code in sent JSON](#include-status-code-in-sent-json)
   - [Use `error_log` in error handler](#use-error_log-in-error-handler)
+  - [Always use `helmet`](#always-use-helmet)
 - [Request data](#request-data)
 - [Route loading](#route-loading)
   - [Auto loading](#auto-loading)
@@ -178,7 +179,8 @@ array(
   "use_json_error_handler" => false,
   "debug_mode" => false,
   "include_status_code_in_sent_json" => true,
-  "use_error_log_in_error_handler" => true
+  "use_error_log_in_error_handler" => true,
+  "always_use_helmet" => true
 );
 ```
 
@@ -234,6 +236,10 @@ Wether `send_json` and `send_json_body` should include `"status": 200` in the re
 Wether the default error handler function provided by WebFrameworkPHP should also use `error_log` to log more detailed errors. This can be useful if you don't want to turn on debug mode, but still want to see the more detailed errors.
 
 > Error is sent to PHP's system logger, using the Operating System's system logging mechanism or a file, depending on what the [error_log](https://www.php.net/manual/en/errorfunc.configuration.php#ini.error-log) configuration directive is set to. An option to change this might be added in the future.
+
+### Always use `helmet`
+
+Wether `helmet` should be called before every response. If this is not disabled then using `helmet` manually will do nothing. If disabled `helmet` can still be used globally or on a per route basis by manually calling the method.
 
 ---
 
@@ -1159,6 +1165,8 @@ $this->get("/hello", function() {
 > This framework includes [Helmet's (JS)](https://helmetjs.github.io/) defaults that can be activated by calling `$webFramework->helmet()`, this must be called before `$webFramework->start()`.
 
 > This can also be used on a per route basis, by calling it at the start of a route the same way that custom headers are added in the above section.
+
+> **Since version `0.3.0` helmet is included by default in every response. It can be disabled using the `always_use_helmet` constructor option.**
 
 **Example:**
 

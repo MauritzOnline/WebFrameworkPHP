@@ -1,11 +1,23 @@
 <?php
 
 $this->get("/download_file", function() {
-  return $this->send_file("test_files/to_download.txt", content_type: "text/plain");
+  try {
+    return $this->send_file("test_files/to_download.txt", content_type: "text/plain");
+  } catch(Exception $err) {
+    return $this->send_json(array(
+      "error" => $err->getMessage()
+    ));
+  }
 });
 
 $this->get("/download_file/stream", function() {
-  return $this->send_file("test_files/to_download.txt", content_type: "text/plain", stream: true);
+  try {
+    return $this->send_file("test_files/to_download.txt", content_type: "text/plain", stream: true);
+  } catch(Exception $err) {
+    return $this->send_json(array(
+      "error" => $err->getMessage()
+    ));
+  }
 });
 
 $this->post("/upload_file", function() {

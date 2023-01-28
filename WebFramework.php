@@ -331,14 +331,12 @@ class WebFramework {
   }
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server)
-  // TODO: send back an error that the dev can check, so that they can choose how to handle the file not being readable, etc. (maybe use throw like move_uploaded_file?)
-  // This would solve the issue of the dev having to run "is_file" and "is_readable" before running "send_file" to make sure an error isn't sent to the user.
   public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
     if(!is_file($file_path)) {
-      $this->_send_error(20100, 'send_file(): Either no file could be found at the provided file path: "' . $file_path . '", or the provided path is not a file!');
+      throw new Exception('Either no file could be found at the provided file path: "' . $file_path . '", or the provided path is not a file!', 1000);
     }
     if(!is_readable($file_path)) {
-      $this->_send_error(20100, 'send_file(): Provided file path "' . $file_path . '" is not readable!');
+      throw new Exception('Provided file path "' . $file_path . '" is not readable!', 1001);
     }
 
     if($download_file_name === null || trim($download_file_name) === "") {
@@ -347,12 +345,16 @@ class WebFramework {
     }
 
     if($content_type === null || trim($content_type) === "") {
-      // Create a new file info object
-      $finfo = new finfo(FILEINFO_MIME_TYPE);
-      // Get the MIME type of the file
-      $mime_type = $finfo->file($file_path);
-      // Set Content-Type of file to send (defaults to plain text if finfo fails)
-      $content_type = ($mime_type !== false ? $mime_type : "text/plain");
+      if (extension_loaded("fileinfo")) {
+        // Create a new file info object
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        // Get the MIME type of the file
+        $mime_type = $finfo->file($file_path);
+        // Set Content-Type of file to send (defaults to plain text if finfo fails)
+        $content_type = ($mime_type !== false ? $mime_type : "text/plain");
+      } else {
+        throw new Exception('Failed to set Content-Type automatically! Extension fileinfo (finfo) does not appear to be loaded!', 2000);
+      }
     }
 
     // Set the content length (filesize)
@@ -360,7 +362,8 @@ class WebFramework {
 
     // Set the start and end bytes for the range
     $start_byte = 0;
-    $end_byte = $content_length - 1;
+    $end_byte = ($content_length === false ? 1 : $content_length) - 1;
+    $content_length = ($content_length === false ? 1 : 0);
 
     // Set the HTTP headers
     http_response_code(200);
@@ -373,7 +376,10 @@ class WebFramework {
     }
 
     // Send the file
-    readfile($file_path);
+    $result = readfile($file_path);
+    if($result === false) {
+      throw new Exception('Failed to output given file: "' . $file_path . '"!', 3000);
+    }
     exit();
   }
 

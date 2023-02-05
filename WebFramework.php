@@ -36,7 +36,7 @@ class WebFramework {
   public object|null $route = null; // this gets overwritten by start()
   public bool $debug_mode = false; // this gets overwritten by the constructor
 
-  public function __construct(array $options) {
+  public function __construct(array $options = array()) {
     foreach($this->_options as $key => $value) {
       if(isset($options[$key])) {
         $new_value = $options[$key];

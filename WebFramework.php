@@ -52,13 +52,13 @@ class WebFramework {
     $this->debug_mode = $this->_options["debug_mode"];
 
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
-    $this->_root_uri = $this->_str_replace_once("/index.php", "", $this->_script_file);
+    $this->_root_uri = preg_replace("/\/index.php$/i", "", $this->_script_file);
     $this->_full_request_uri = $_SERVER["REQUEST_URI"];
 
     $this->request = (object) array(
       "method" => $_SERVER["REQUEST_METHOD"],
       "content_type" => (isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : ""),
-      "uri" => rtrim($this->_str_replace_once($this->_root_uri, "", $this->_full_request_uri), "/"),
+      "uri" => rtrim(preg_replace("/^" . preg_quote($this->_root_uri, "/") . "/i", "", $this->_full_request_uri), "/"),
       "token" => null, // Only gets parsed if the parse_auth() method is called before start()
       "credentials" => null, // Only gets parsed if the parse_auth() method is called before start()
       "query" => array(),
@@ -797,16 +797,6 @@ class WebFramework {
       }
     } else {
       $this->_send_error(11000, 'Given routes folder "' . $this->_options["routes_folder"] . '" is either not a folder or is not readable!');
-    }
-  }
-
-  // Replaces found string in provided string with something else but only replaces the first occurrence
-  private function _str_replace_once(string $needle, string $replace, string $haystack) {
-    $pos = strpos($haystack, $needle);
-    if($pos !== false) {
-      return substr_replace($haystack, $replace, $pos, strlen($needle));
-    } else {
-      return $haystack;
     }
   }
 

@@ -3,8 +3,8 @@
  * WebFrameworkPHP: A small and simple web framework built using PHP.
  *
  * @copyright   Copyright (c) 2021-present, Mauritz Nilsson <mail@mauritzonline.com>
- * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/v0.3.0/LICENSE
- * @version     0.3.0
+ * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/v0.3.1/LICENSE
+ * @version     0.3.1
  */
 
 // TODO: add more tests to the Python test script

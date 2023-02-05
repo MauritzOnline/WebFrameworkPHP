@@ -616,8 +616,8 @@ class WebFramework {
         } else {
           if($found_route === null) {
             array_splice($this->request->params, 0); // reset any already parsed params
-            $route_uri_sections = explode("/", $route->uri);
-            $request_uri_sections = explode("/", $this->request->uri);
+            $route_uri_sections = ($route->uri === "/" ? array() : explode("/", $route->uri));
+            $request_uri_sections = ($this->request->uri === "/" ? array() : explode("/", $this->request->uri));
             $uri_matches = true;
             
             // Check if the request URI and the route URI has the same amount of sections

@@ -4,7 +4,7 @@
  *
  * @copyright   Copyright (c) 2021-present, Mauritz Nilsson <mail@mauritzonline.com>
  * @license     MIT, https://github.com/MauritzOnline/WebFrameworkPHP/blob/v0.3.2/LICENSE
- * @version     0.3.2
+ * @version     0.3.3
  */
 
 // TODO: add more tests to the Python test script

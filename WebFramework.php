@@ -787,10 +787,10 @@ class WebFramework {
   // Auto loads routes (should not be used directly, use start())
   private function _load_routes() {
     if(is_dir($this->_options["routes_folder"]) && is_readable($this->_options["routes_folder"])) {
-      // Find all endpoints and require them (ignores hidden files)
+      // Find all endpoints and require them (ignores hidden files & files starting with _)
       foreach(scandir($this->_options["routes_folder"]) as $key => $endpoint) {
-        if(!str_starts_with($endpoint, ".")) {
-          if(str_ends_with($endpoint, ".php") || str_ends_with($endpoint, ".PHP")) {
+        if(!str_starts_with($endpoint, ".") && !str_starts_with($endpoint, "_")) {
+          if(str_ends_with(strtolower($endpoint), ".php")) {
             require_once($this->_options["routes_folder"] . "/" . $endpoint);
           }
         }

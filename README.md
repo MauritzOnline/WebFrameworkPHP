@@ -290,6 +290,8 @@ $this->post("/note/:id", function() {
 
 > All routing is done by placing PHP files inside either the default `routes` folder, or by choosing your own folder in the constructor options. Auto loading of routes can be disabled by passing an empty string to the constructor option `routes_folder` _(e.g. `"routes_folder" => ""`)_. Auto loading can used together with manual loading of additional routes.
 
+> Files starting with `.` or `_` will be ignored.
+
 ### Auto loading
 
 `/index.php`

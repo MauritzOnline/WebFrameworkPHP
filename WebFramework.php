@@ -9,6 +9,7 @@
 
 // TODO: add more tests to the Python test script
 // TODO: utilize "_send_error" more
+// TODO: add cors() middleware function
 
 class WebFramework {
   // TODO: add regex route mode?

@@ -341,7 +341,8 @@ class WebFramework {
   }
 
   // Send a file to the client ($content_type is required if "finfo" is not supported on the server)
-  public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false) {
+  // $disposition: "attachment" (force download) or "inline" (display/play in browser)
+  public function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false, string $disposition = "attachment") {
     if(!is_file($file_path)) {
       throw new Exception('Either no file could be found at the provided file path: "' . $file_path . '", or the provided path is not a file!', 1000);
     }
@@ -349,11 +350,42 @@ class WebFramework {
       throw new Exception('Provided file path "' . $file_path . '" is not readable!', 1001);
     }
 
+    // Validate disposition (defaults to "attachment" for anything unexpected)
+    $disposition = strtolower(trim($disposition));
+    if($disposition !== "inline") {
+      $disposition = "attachment";
+    }
+
     if($download_file_name === null || trim($download_file_name) === "") {
       // Get the file name from the file path
       $download_file_name = basename($file_path);
     }
 
+    // Normalize to just the base name (no path components)
+    $download_file_name = basename($download_file_name);
+
+    // Strip all control characters (including CR/LF) and quotes/backslashes
+    // to prevent header injection and parser confusion.
+    $download_file_name = preg_replace('/[\x00-\x1F\x7F"\\\\]/', "", $download_file_name);
+
+    // Guard against an empty result after stripping
+    if(trim($download_file_name) === "") {
+      $download_file_name = "download";
+    }
+
+    // Build an ASCII-only fallback name for the legacy `filename=` parameter.
+    // Non-ASCII bytes are replaced with "_".
+    $ascii_fallback = preg_replace('/[^\x20-\x7E]/', "_", $download_file_name);
+
+    // RFC 5987 percent-encoding for the modern `filename*=` parameter.
+    $encoded_name = rawurlencode($download_file_name);
+    $encoded_name = strtr($encoded_name, [
+      "%21" => "!", "%23" => "#", "%24" => "$", "%26" => "&",
+      "%2B" => "+", "%2D" => "-", "%2E" => ".", "%5E" => "^",
+      "%5F" => "_", "%60" => "`", "%7C" => "|", "%7E" => "~",
+    ]);
+
+    // Resolve Content-Type
     if($content_type === null || trim($content_type) === "") {
       if (extension_loaded("fileinfo")) {
         // Create a new file info object
@@ -367,29 +399,118 @@ class WebFramework {
       }
     }
 
-    // Set the content length (filesize)
-    $content_length = filesize($file_path);
+    // Get file size
+    $file_size = filesize($file_path);
+    $content_length = ($file_size === false) ? 0 : $file_size;
 
-    // Set the start and end bytes for the range
-    $start_byte = 0;
-    $end_byte = ($content_length === false ? 1 : $content_length) - 1;
-    $content_length = ($content_length === false ? 1 : 0);
-
-    // Set the HTTP headers
-    http_response_code(200);
-    header("Content-Disposition: attachment; filename=\"$download_file_name\"");
+    // Content-Disposition (attachment = download, inline = display/play in browser)
+    if($ascii_fallback === $download_file_name) {
+      header("Content-Disposition: $disposition; filename=\"$ascii_fallback\"");
+    } else {
+      header(
+        "Content-Disposition: $disposition; " .
+        "filename=\"$ascii_fallback\"; " .
+        "filename*=UTF-8''$encoded_name"
+      );
+    }
     header("Content-Type: $content_type");
-    header("Content-Length: $content_length");
+
+    // Default byte range (whole file)
+    $start_byte = 0;
+    $end_byte = ($content_length > 0) ? $content_length - 1 : 0;
+    $is_partial = false;
 
     if($stream === true) {
-      header("Content-Range: bytes $start_byte-$end_byte/$content_length");
+      // Advertise range support
+      header("Accept-Ranges: bytes");
+
+      if(isset($_SERVER["HTTP_RANGE"]) && $content_length > 0) {
+        // Only support a single range of the form "bytes=start-end"
+        if(preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER["HTTP_RANGE"]), $m)) {
+          $has_start = ($m[1] !== "");
+          $has_end   = ($m[2] !== "");
+
+          if(!$has_start && !$has_end) {
+            // "bytes=-" is invalid
+            http_response_code(416);
+            header("Content-Range: bytes */$content_length");
+            exit();
+          }
+
+          if(!$has_start) {
+            // Suffix range: "bytes=-N" => last N bytes
+            $suffix_length = (int) $m[2];
+            if($suffix_length <= 0) {
+              http_response_code(416);
+              header("Content-Range: bytes */$content_length");
+              exit();
+            }
+            $start_byte = max(0, $content_length - $suffix_length);
+            $end_byte = $content_length - 1;
+          } else {
+            $start_byte = (int) $m[1];
+            $end_byte = $has_end ? (int) $m[2] : $content_length - 1;
+          }
+
+          // Clamp the end to the last valid byte
+          if($end_byte >= $content_length) {
+            $end_byte = $content_length - 1;
+          }
+
+          // Validate the resulting range
+          if($start_byte > $end_byte || $start_byte >= $content_length) {
+            http_response_code(416);
+            header("Content-Range: bytes */$content_length");
+            exit();
+          }
+
+          $is_partial = true;
+        }
+      }
     }
 
-    // Send the file
-    $result = readfile($file_path);
-    if($result === false) {
-      throw new Exception('Failed to output given file: "' . $file_path . '"!', 3000);
+    $length = $end_byte - $start_byte + 1;
+
+    if($is_partial === true) {
+      http_response_code(206);
+      header("Content-Range: bytes $start_byte-$end_byte/$content_length");
+      header("Content-Length: $length");
+    } else {
+      http_response_code(200);
+      header("Content-Length: $content_length");
     }
+
+    // Output the (possibly partial) file in chunks to avoid loading it all into memory
+    $fp = fopen($file_path, "rb");
+    if($fp === false) {
+      throw new Exception('Failed to open given file for reading: "' . $file_path . '"!', 3000);
+    }
+
+    if($start_byte > 0) {
+      if(fseek($fp, $start_byte) !== 0) {
+        fclose($fp);
+        throw new Exception('Failed to seek within given file: "' . $file_path . '"!', 3001);
+      }
+    }
+
+    $chunk_size = 8192; // 8 KB
+    $bytes_remaining = $length;
+
+    while($bytes_remaining > 0 && !feof($fp)) {
+      $read_size = (int) min($chunk_size, $bytes_remaining);
+      $buffer = fread($fp, $read_size);
+
+      if($buffer === false) {
+        fclose($fp);
+        throw new Exception('Failed to read given file: "' . $file_path . '"!', 3002);
+      }
+
+      echo $buffer;
+      flush();
+      $bytes_remaining -= strlen($buffer);
+    }
+
+    fclose($fp);
     exit();
   }
 
@@ -443,10 +564,26 @@ class WebFramework {
     $file_name = trim($file["name"]);
     $file_ext = ltrim(pathinfo($file_name, PATHINFO_EXTENSION), ".");
     $file_name = trim(basename($file_name, "." . $file_ext));
-    $file_size = filesize($tmp_file);
+    $normalized_ext = strtolower($file_ext);
+
+    static $dangerous = [
+      "pht", "phtm", "phtml", "phps",
+      "phar", "pcgi", "inc", "htaccess", "shtml", "cgi", "pl",
+    ];
+
+    // Only the genuinely "open-ended" case (PHP version bumps) needs a regex
+    $is_php_ext = preg_match('/^php[0-9]*$/', $normalized_ext) === 1;
+    $is_dangerous = $is_php_ext || in_array($normalized_ext, $dangerous, true);
+
+    if($is_dangerous && !in_array($normalized_ext, $options["allowed_exts"], true)) {
+      if($options["remove_invalid_files"] === true) {
+        $this->_delete_temp_uploaded_file($tmp_file);
+      }
+      throw new Exception("Executable file extension is not permitted!", 2003);
+    }
 
     if(count($options["allowed_exts"]) > 0) {
-      if(!in_array(strtolower($file_ext), $options["allowed_exts"])) {
+      if(!in_array($normalized_ext, $options["allowed_exts"])) {
         if($options["remove_invalid_files"] === true) {
           $this->_delete_temp_uploaded_file($tmp_file);
         }
@@ -455,7 +592,7 @@ class WebFramework {
     }
 
     if($options["min_size"] > 0) {
-      if($file_size < $options["min_size"]) {
+      if($file["size"] < $options["min_size"]) {
         if($options["remove_invalid_files"] === true) {
           $this->_delete_temp_uploaded_file($tmp_file);
         }
@@ -464,7 +601,7 @@ class WebFramework {
     }
 
     if($options["max_size"] > 0) {
-      if($file_size > $options["max_size"]) {
+      if($file["size"] > $options["max_size"]) {
         if($options["remove_invalid_files"] === true) {
           $this->_delete_temp_uploaded_file($tmp_file);
         }
@@ -481,10 +618,24 @@ class WebFramework {
     if($new_file_ext !== "") {
       $file_ext = ltrim($new_file_ext, ".");
     }
-  
+
+    $final_ext = strtolower($file_ext);
+
+    // Re-check in case new_file_ext introduced a dangerous extension
+    $final_is_dangerous =
+      preg_match('/^php[0-9]*$/', $final_ext) === 1 ||
+      in_array($final_ext, $dangerous, true);
+
+    if($final_is_dangerous && !in_array($final_ext, $options["allowed_exts"], true)) {
+      if($options["remove_invalid_files"] === true) {
+        $this->_delete_temp_uploaded_file($tmp_file);
+      }
+      throw new Exception("Executable file extension is not permitted!", 2003);
+    }
+
     // Generate a new file name
-    $final_file_name = $file_name . "." . strtolower($file_ext);
-    $final_file_name = str_replace("/", "", $final_file_name);
+    $final_file_name = $file_name . "." . $final_ext;
+    $final_file_name = basename($final_file_name);
 
     $dest_folder = trim($dest_folder);
     $folder_path = ($dest_folder !== "" ? $dest_folder : ".");

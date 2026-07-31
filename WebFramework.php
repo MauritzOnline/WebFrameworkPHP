@@ -738,9 +738,9 @@ class WebFramework {
               // Spec: https://www.rfc-editor.org/rfc/rfc2617#section-2
               
               $this->request->credentials = array(
-                // INFO: Trims username & password, since "  john.doe" or "password  ", are not desired.
+                // INFO: Trims username, since "  john.doe" is not desired. Password is not trimmed since leading/trailing spaces are valid password characters per RFC 2617.
                 "username" => trim($matches["username"]),
-                "password" => trim($matches["password"])
+                "password" => $matches["password"]
               );
             }
           }

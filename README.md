@@ -54,7 +54,7 @@ A small and simple web framework built using PHP. Handles routing and different 
   - [send_file()](#send_file)
   - [Exceptions](#exceptions)
 - [Moving uploaded files](#moving-uploaded-files)
-  - [Exceptions](#exceptions)
+  - [Exceptions](#exceptions-1)
   - [Options](#options)
 - [HTML rendering](#html-rendering)
 - [View rendering](#view-rendering)
@@ -157,14 +157,17 @@ server {
 
 You can easily customize the default error handler that is provided. This error handler will deal with fatal errors and exceptions.
 
-- **E10000:** Fatal error caused by loaded routes or other custom code.
-- **E10001:** Error sent using `trigger_error`.
+- **E10000:** Uncaught exception caused by loaded routes or other custom code.
+- **E10001:** Error sent using `trigger_error` (handled by `set_error_handler`).
+- **E10002:** Fatal error caught by the shutdown function (e.g. `E_ERROR`, `E_PARSE`, `E_CORE_ERROR`, `E_COMPILE_ERROR`).
 - **E11000:** Error sent from `_load_routes`, caused by given `routes_folder` not being a folder or not being readable.
+- **E11111:** Default fallback error code used by `_send_error` when no specific code is provided.
 - **E20000:** Error sent from `send_json` or `send_json_body`, caused by failed JSON encode.
 - **E20001:** Error sent from `send`, caused by an invalid HTTP status code _(code must be: 100-599)_.
-- **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must a number: 100-599)_.
-- **E20100:** Error sent from `send_file`, caused by missing or unreadable file at the given `$file_path`.
+- **E20002:** Error sent from `send_json_body`, caused by an invalid `status` in `$data` body _(must be a number: 100-599)_.
 - **E50000:** Error sent from `render_view`, caused by missing or unreadable file at the given `$view_str`.
+
+> **Note:** `send_file()` and `move_uploaded_file()` do not use the `_send_error` scheme above. Instead they throw native `Exception`s with their own smaller error codes (see the respective "Exceptions" sections below). It is recommended to wrap calls to these two methods in a `try`/`catch` block.
 
 ---
 
@@ -660,10 +663,12 @@ $this->send(json_encode(array(...)), 200, "application/json"); // 200 OK
 
 ### send_json()
 
-> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by setting `$status_code`. `$data` can either be an associative array or an object. If `status` is omitted then it will default to `200`. HTTP status code must be a number _(100-599)_.
+> JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by setting `$status_code`. `$data` can either be an associative array or an object. HTTP status code must be a number _(100-599)_.
+
+> `$include_status_code` controls whether `"status": <code>` is included in the response body. When left as `null` (the default), the value of the `include_status_code_in_sent_json` constructor option is used. Pass `true` or `false` to override it for this call only.
 
 ```php
-function send_json(object|array $data, int $status_code = 200, bool $include_status_code = true)
+function send_json(object|array $data, int $status_code = 200, bool|null $include_status_code = null)
 ```
 
 **Examples:**
@@ -692,8 +697,10 @@ $this->send_json(array(
 
 > JSON response function, allows you to send data as JSON. Response will always have the Content-Type of `application/json`. Status code is chosen by passing `status` in the `$data` object/array. `$data` can either be an associative array or an object. If `status` is omitted from `$data` then it will default to `200`. HTTP status code must be a number _(100-599)_.
 
+> `$include_status_code` controls whether `"status": <code>` is included in the response body. When left as `null` (the default), the value of the `include_status_code_in_sent_json` constructor option is used. Pass `true` or `false` to override it for this call only.
+
 ```php
-function send_json_body(object|array $data, bool $include_status_code = true)
+function send_json_body(object|array $data, bool|null $include_status_code = null)
 ```
 
 **Examples:**
@@ -723,10 +730,20 @@ $this->send_json_body(array(
 
 ### send_file()
 
-> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an exception if it's not supported and a Content-Type isn't provided using `$content_type`)_. Status code is always set to `200`. `$download_file_name` will change the file name displayed to the user. `stream` will stream the file rather than sending it all at once.
+> File response function, allows you to send files. Response will automatically choose the Content-Type if `finfo` is supported _(will throw an exception if it's not supported and a Content-Type isn't provided using `$content_type`)_. `$download_file_name` will change the file name displayed to the user. `$stream` enables chunked output and HTTP range requests (useful for large files or in-browser media playback). `$disposition` controls how the browser handles the file.
+
+> **Status codes:** When not streaming, the status is `200 OK`. When `$stream` is enabled and the client sends a valid `Range` header, the response will be `206 Partial Content`; invalid/unsatisfiable ranges result in `416 Range Not Satisfiable`.
+
+> **`$disposition`** accepts `"attachment"` (force a download, default) or `"inline"` (display/play the file in the browser). Any unexpected value falls back to `"attachment"`.
 
 ```php
-function send_file(string $file_path, string|null $download_file_name = null, string|null $content_type = null, bool $stream = false)
+function send_file(
+  string $file_path,
+  string|null $download_file_name = null,
+  string|null $content_type = null,
+  bool $stream = false,
+  string $disposition = "attachment"
+)
 ```
 
 ### Exceptions
@@ -734,12 +751,14 @@ function send_file(string $file_path, string|null $download_file_name = null, st
 - If no file is found at the provided `$file_path`, an exception with error code `1000` is thrown.
 - If the file provided by `$file_path` is not readable, an exception with error code `1001` is thrown.
 - If no `$content_type` is provided and the `fileinfo` _(finfo)_ extension isn't loaded, an exception with error code `2000` is thrown.
-- If the file provided by `$file_path` failed to output using `readfile`, an exception with error code `3000` is thrown.
+- If the file provided by `$file_path` failed to open for reading, an exception with error code `3000` is thrown.
+- If seeking within the file fails (during a range request), an exception with error code `3001` is thrown.
+- If reading the file fails during output, an exception with error code `3002` is thrown.
 
 **Examples:**
 
 ```php
-// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+// wrapping send_file() in a try block is recommended, since it throws exceptions when errors are encountered
 try {
   return $this->send_file("hello_world.txt");
 } catch(Exception $err) {
@@ -750,9 +769,20 @@ try {
   ));
 }
 
-// wrapping move_uploaded_file() in a try block is recommended, since it throws exceptions when errors are encountered
+// Custom download name shown to the user
 try {
   return $this->send_file("hello_world.txt", "i_show_up_differently_to_the_user.txt");
+} catch(Exception $err) {
+  return $this->send_json_body(array(
+    "status" => 500,
+    "error" => $err->getMessage(),
+    "error_code" => $err->getCode()
+  ));
+}
+
+// Stream a video for in-browser playback (supports seeking via range requests)
+try {
+  return $this->send_file("clip.mp4", null, null, true, "inline");
 } catch(Exception $err) {
   return $this->send_json_body(array(
     "status" => 500,
@@ -780,9 +810,12 @@ function move_uploaded_file(string $file, string $dest_folder = ".", array $opti
 - If the uploaded file does not have a valid extension as specified with the `allowed_exts` option, an exception with error code `2000` is thrown.
 - If the uploaded file is smaller than specified with the `min_size` option, an exception with error code `2001` is thrown.
 - If the uploaded file is larger than specified with the `max_size` option, an exception with error code `2002` is thrown.
+- If the uploaded file has a potentially executable/dangerous extension that is not explicitly allowed via `allowed_exts`, an exception with error code `2003` is thrown. This check also applies to any extension set via the `new_file_ext` option.
 - If the specified `$dest_folder` is not a folder or does not exist, an exception with error code `3000` is thrown.
 - If the specified folder path by `$dest_folder` is not writeable, an exception with error code `3001` is thrown.
 - If the file cannot be moved, an exception with error code `4000` is thrown.
+
+> **Security note:** Regardless of the `allowed_exts` option, the following extensions are always blocked unless you explicitly include them in `allowed_exts`: any `php`/`phpN` variant, `pht`, `phtm`, `phtml`, `phps`, `phar`, `pcgi`, `inc`, `htaccess`, `shtml`, `cgi`, `pl`. For production use, it is strongly recommended to always set an explicit `allowed_exts` whitelist.
 
 ### Options
 
@@ -849,10 +882,16 @@ try {
 
 ## HTML rendering
 
-> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase.
+> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase. Route arguments can be passed via `$route_args` (see [Route arguments](#route-arguments)).
 
 ```php
-function render_html(string $route_str, callable $route_callback, $status_code = 200, string $method = "GET")
+function render_html(
+  string $route_str,
+  callable $route_callback,
+  array $route_args = array(),
+  int $status_code = 200,
+  string $method = "GET"
+)
 ```
 
 **Examples:**
@@ -908,10 +947,16 @@ $this->render_html("/document/:id", function() {
 
 ## View rendering
 
-> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase.
+> A HTTP method can be specified, the allowed values are: `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`. The provided method does not have to be all uppercase. Route arguments can be passed via `$route_args` (see [Route arguments](#route-arguments)).
 
 ```php
-function render_view(string $route_str, string $view_str, $status_code = 200, string $method = "GET")
+function render_view(
+  string $route_str,
+  string $view_str,
+  array $route_args = array(),
+  int $status_code = 200,
+  string $method = "GET"
+)
 ```
 
 > `$view_str` should be the name of the file inside the `views` folder. So `document` would turn into `views/document.php`, `hello/world` would turn into `views/hello/world.php`.
@@ -1021,7 +1066,9 @@ $webFramework->start();
 
 You can use the provided `parse_auth()` method to parse for Basic Authentication requests. If a valid Authorization HTTP header is found and the parsing is successful then the provided username and password will be added to `request->credentials`. If no valid username and password can be found then `request->credentials` will be `null`.
 
-> The **username** & **password** in `request->credentials` get trimmed of leading and following spaces, since `"  john.doe"` or `"password  "`, are not desired.
+> The **username** in `request->credentials` is trimmed of leading and trailing spaces, since `"  john.doe"` is not desired. The **password** is **not** trimmed, since leading/trailing spaces are valid password characters per RFC 2617.
+
+> A colon (`:`) is only treated as the username/password separator on its **first** occurrence. Any further colons belong to the password. For example, decoded credentials of `john:doe:password` are parsed as Username: `john`, Password: `doe:password`. A `:` inside the username itself is not supported per the spec.
 
 **Example:**
 

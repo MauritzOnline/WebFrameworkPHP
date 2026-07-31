@@ -684,7 +684,6 @@ class WebFramework {
     header("Origin-Agent-Cluster: ?1"); // originAgentCluster
 
     header("X-DNS-Prefetch-Control: off"); // dnsPrefetchControl
-    header("Expect-CT: max-age=0"); // expectCt
     header("X-Frame-Options: SAMEORIGIN"); // frameguard
     header("Strict-Transport-Security: max-age=15552000; includeSubDomains"); // hsts
     header("X-Download-Options: noopen"); // ieNoOpen

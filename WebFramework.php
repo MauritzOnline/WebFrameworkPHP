@@ -68,10 +68,8 @@ class WebFramework {
       "files" => array()
     );
 
-    if(isset($_GET) && !empty($_GET)) {
-      $this->request->uri = explode("?", $this->request->uri)[0];
-      $this->request->uri = rtrim($this->request->uri, "/");
-    }
+    $this->request->uri = explode("?", $this->request->uri, 2)[0];
+    $this->request->uri = rtrim($this->request->uri, "/");
     $this->request->uri = ($this->request->uri === "" ? "/" : $this->request->uri);
 
     if($this->_options["handle_php_errors"] === true) {

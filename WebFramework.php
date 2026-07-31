@@ -286,7 +286,7 @@ class WebFramework {
       $include_status_code = $this->_options["include_status_code_in_sent_json"];
     }
 
-    $final_data = $data;
+    $final_data = clone $data;
     if($include_status_code === true) {
       unset($final_data->status);
       // Used to make sure status code is at the start of object
@@ -322,7 +322,7 @@ class WebFramework {
       }
     }
 
-    $final_data = $data;
+    $final_data = clone $data;
     unset($final_data->status);
     if($include_status_code === true) {
       // Used to make sure status code is at the start of object

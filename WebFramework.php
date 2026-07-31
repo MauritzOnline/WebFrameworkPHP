@@ -905,8 +905,8 @@ class WebFramework {
       $error_message = $debug_error_message;
     }
 
-    call_user_func($this->_error_handler, $error_code, $error_message);
     error_log("WebFrameworkPHP ERROR >> An internal error occurred in WebFrameworkPHP (E" . $error_code . ")!");
+    call_user_func($this->_error_handler, $error_code, $error_message);
   }
 
   // Adds route (should not be used directly, use get(), post(), etc...)

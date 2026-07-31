@@ -87,9 +87,18 @@ class WebFramework {
         };
       }
 
-      /* register_shutdown_function(function() {
-        die("(die) shutdown");
-      }); */
+      register_shutdown_function(function() {
+        $err = error_get_last();
+        if ($err !== null && in_array($err["type"], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+          $msg = "Type: Fatal; Message: {" . $err["message"] . "}; File: {" . $err["file"] . "}; Line: {" . $err["line"] . "};";
+          if ($this->_options["use_error_log_in_error_handler"]) {
+            error_log("WebFrameworkPHP ERROR >> " . $msg);
+          }
+          if (!headers_sent()) {
+            $this->_send_error(10002, $this->debug_mode ? $msg : "");
+          }
+        }
+      });
 
       set_exception_handler(function($e) {
         $error_message = join(" ", array(

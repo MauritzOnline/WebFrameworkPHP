@@ -53,7 +53,7 @@ class WebFramework {
     $this->debug_mode = $this->_options["debug_mode"];
 
     $this->_script_file = $_SERVER["SCRIPT_NAME"];
-    $this->_root_uri = preg_replace("/\/index.php$/i", "", $this->_script_file);
+    $this->_root_uri = preg_replace("/\/index\.php$/i", "", $this->_script_file);
     $this->_full_request_uri = $_SERVER["REQUEST_URI"];
 
     $this->request = (object) array(

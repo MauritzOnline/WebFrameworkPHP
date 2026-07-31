@@ -826,10 +826,11 @@ class WebFramework {
         if(isset($_POST) && !empty($_POST)) {
           $this->request->body = $_POST;
         } else if($this->request->content_type === "application/json") {
+          $raw_input = file_get_contents("php://input");
           try {
-            $obj_body = json_decode(file_get_contents("php://input"), true);
-            $this->request->body = (isset($obj_body) && !empty($obj_body) ? $obj_body : array());
-          } catch(Exception $error) {
+            $obj_body = json_decode($raw_input, true, 512, JSON_THROW_ON_ERROR);
+            $this->request->body = is_array($obj_body) ? $obj_body : array();
+          } catch (\JsonException $e) {
             error_log("WebFrameworkPHP WARNING >> Failed to decode JSON body in request!");
           }
         }

@@ -120,6 +120,8 @@ class WebFramework {
       });
       
       set_error_handler(function($level, $message, $file, $line) {
+        if (!(error_reporting() & $level)) return false;
+
         $error_message = "";
         if($this->debug_mode) {
           $error_type = "Unknown";

@@ -388,11 +388,8 @@ class WebFramework {
     // Resolve Content-Type
     if($content_type === null || trim($content_type) === "") {
       if (extension_loaded("fileinfo")) {
-        // Create a new file info object
         $finfo = new finfo(FILEINFO_MIME_TYPE);
-        // Get the MIME type of the file
         $mime_type = $finfo->file($file_path);
-        // Set Content-Type of file to send (defaults to plain text if finfo fails)
         $content_type = ($mime_type !== false ? $mime_type : "text/plain");
       } else {
         throw new Exception('Failed to set Content-Type automatically! Extension fileinfo (finfo) does not appear to be loaded!', 2000);
